@@ -1,0 +1,61 @@
+name: build
+
+on:
+  push:
+    branches: [main, master]
+    tags: ['v*']
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo registry and target
+        uses: Swatinem/rust-cache@v2
+
+      - name: Build release
+        run: cargo build --release
+
+      - name: Verify binary and embedded icon
+        shell: pwsh
+        run: |
+          $exe = 'target/release/peekdown.exe'
+          if (-not (Test-Path $exe)) { throw "build produced no $exe" }
+          "size: {0:N0} KB" -f ((Get-Item $exe).Length / 1KB)
+          Add-Type -AssemblyName System.Drawing
+          $ico = [System.Drawing.Icon]::ExtractAssociatedIcon((Resolve-Path $exe))
+          if (-not $ico) { throw 'no icon resource embedded in the exe' }
+          "embedded icon ok: $($ico.Width)x$($ico.Height)"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: peekdown-exe
+          path: target/release/peekdown.exe
+          if-no-files-found: error
+
+  release:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: peekdown-exe
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: peekdown.exe
+          generate_release_notes: true
