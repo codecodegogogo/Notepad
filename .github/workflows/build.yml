@@ -23,6 +23,19 @@ jobs:
       - name: Cache cargo registry and target
         uses: Swatinem/rust-cache@v2
 
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      # Rebuilds assets/notebook.ico from assets/notebook.png with dedicated
+      # small sizes, so Windows picks an exact entry instead of rescaling one
+      # bitmap at draw time. Runs before cargo so build.rs embeds the result.
+      - name: Generate multi-resolution icon
+        run: |
+          python -m pip install --quiet --disable-pip-version-check "pillow==11.0.0"
+          python tools/make_icon.py
+
       - name: Build release
         run: cargo build --release
 

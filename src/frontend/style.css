@@ -176,6 +176,15 @@ html, body {
   stroke-linecap: round;
 }
 
+/* Theme toggle lives inside #window-controls but uses solid icons, not the
+   stroked window-control glyphs, so it opts out of the rule above. */
+#btn-theme svg {
+  width: 13px;
+  height: 13px;
+  fill: currentColor;
+  stroke: none;
+}
+
 .window-controls-sep {
   width: 1px;
   height: 16px;
