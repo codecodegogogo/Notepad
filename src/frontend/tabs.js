@@ -33,7 +33,7 @@ var TabManager = (function() {
     var tab = {
       id: id,
       path: path ? normalizePath(path) : null,
-      filename: forceFilename || (path ? path.split(/[/\\]/).pop() : 'Untitled'),
+      filename: forceFilename || (path ? path.split(/[/\\]/).pop() : '未命名'),
       content: content != null ? content : '',
       dirty: false,
       mode: forceMode || (path ? 'preview' : 'edit'),
@@ -52,7 +52,7 @@ var TabManager = (function() {
     if (idx === -1) return;
     var tab = tabs[idx];
     if (tab.dirty) {
-      if (!confirm('Unsaved changes in "' + tab.filename + '". Close anyway?')) return;
+      if (!confirm('「' + tab.filename + '」有未保存的更改，仍要关闭吗？')) return;
     }
     tabs.splice(idx, 1);
     if (tabs.length === 0) {
@@ -245,7 +245,7 @@ var TabManager = (function() {
     var tab = tabs.find(function(t) { return t.id === (id || activeTabId); });
     if (tab) {
       tab.path = path ? normalizePath(path) : null;
-      tab.filename = path ? path.split(/[/\\]/).pop() : 'Untitled';
+      tab.filename = path ? path.split(/[/\\]/).pop() : '未命名';
       renderTabBar();
       updateWindowTitle();
       document.getElementById('status-file').textContent = tab.filename;

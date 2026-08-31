@@ -26,14 +26,15 @@ Binary output: `target/release/peekdown.exe`
 - `src/state.rs` — App state (empty struct — JS owns all tab state)
 - `src/window_state.rs` — Window position/size persistence (config dir: `peekdown/`)
 - `build.rs` — Embeds app icon via winresource
-- `assets/notebook.ico` — App icon (256px, from `assets/notebook.svg`)
+- `assets/notebook.ico` — App icon (48px; CI upsizes it to the smaller Windows shell sizes)
 - `src/frontend/` — All HTML/CSS/JS files (embedded at compile time via include_str!)
-  - `index.html` — Shell with titlebar, tab bar, find bar, TOC panel, editor, preview
+  - `index.html` — Shell with titlebar, tab bar, find bar, TOC panel, editor, preview, settings panel
   - `style.css` — Full styling with dark/light theme via CSS custom properties
-  - `app.js` — IPC bridge, mode toggle, split view, zoom, find, recent files, TOC, theme, shortcuts
+  - `app.js` — IPC bridge, mode toggle, split view, zoom, find, recent files, TOC, shortcuts
   - `tabs.js` — Tab manager IIFE (JS-owned state: content, path, dirty, mode, scroll, cursor)
   - `editor.js` — Textarea input handling, tab key, dirty tracking, split preview sync
   - `preview.js` — marked.js custom renderer with highlight.js integration
+  - `settings.js` — Settings panel IIFE: theme (3-state), the three font slots + sizes, persistence
   - `marked.min.js` — Markdown parser (v15)
   - `highlight.min.js` — Syntax highlighting (v11.11.1, common bundle)
 
@@ -41,14 +42,23 @@ Binary output: `target/release/peekdown.exe`
 - IPC: JS → Rust via `window.ipc.postMessage(JSON)`, Rust → JS via `webview.evaluate_script()`
 - Frontend files are concatenated into a single HTML document at compile time using placeholder replacement
 - JS-owned tab state: Rust is a stateless file I/O service, JS manages all tab data
-- Script load order: highlight.js → marked.js → preview.js → tabs.js → editor.js → app.js
+- Script load order: highlight.js → marked.js → preview.js → tabs.js → editor.js → app.js → settings.js
+  (settings.js last: it touches the DOM and app.js globals at parse time)
 - Toggle mode: single pane switches between edit (textarea) and preview (rendered HTML)
 - Split mode: side-by-side editor + live preview with debounced sync
-- Theming: CSS custom properties with `[data-theme="light"]` overrides, persisted to localStorage
+- Theming: CSS custom properties with `[data-theme="light"]` overrides. settings.js resolves
+  `light | dark | system` (via `matchMedia`) onto `data-theme` at parse time, before first paint
+- Font sizing: `--ui-scale` scales every chrome font-size and the bar heights (`--h-titlebar`,
+  `--h-tabbar`, `--h-statusbar`); `--font-size-editor` / `--font-size-preview` size the two panes
+  and multiply with `--zoom` so Ctrl+scroll stays independent of the settings value
+- `__VERSION__` in index.html is replaced with `CARGO_PKG_VERSION` at compile time
 
 ## Features
+- Chinese UI throughout (tooltips, status bar, dialogs, empty states)
+- Settings panel (Ctrl+,) in the Win11-Notepad style — accordion cards, gear button top-right
+- Themes: Day / Night / Follow system (Catppuccin Latte / Mocha)
+- Configurable font family + size for all three slots (UI chrome, editor, reading)
 - Multi-tab with auto-hiding tab bar (single tab = no bar)
-- Dark/Light themes (Catppuccin Mocha / Latte)
 - Split view (Ctrl+\) with live preview
 - Syntax highlighting for code blocks
 - Find bar (Ctrl+F) with match highlighting
@@ -64,5 +74,7 @@ Binary output: `target/release/peekdown.exe`
 - Keep the binary small: use `opt-level = "s"`, `lto = "fat"`, `panic = "abort"`, `strip = "none"` (never strip symbols — needed for crash diagnostics)
 - No external runtime dependencies — everything embedded in the .exe
 - Dark theme with Catppuccin-inspired color palette (Mocha dark, Latte light)
-- JS uses IIFE pattern for modules (TabManager)
-- localStorage keys prefixed with `peekdown-` (theme, recent, preview-width)
+- JS uses IIFE pattern for modules (TabManager, Settings)
+- localStorage keys prefixed with `peekdown-` (theme, recent, preview-width,
+  font-ui/editor/reading, size-ui/editor/reading)
+- User-facing strings are Chinese; `eprintln!` logs and on-disk defaults (e.g. `untitled.md`) stay ASCII

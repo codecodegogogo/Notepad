@@ -144,7 +144,7 @@ function toggleMode() {
     ($.editorContainer || document.getElementById('editor-container')).classList.remove('active');
     ($.previewContainer || document.getElementById('preview-container')).classList.add('active');
     document.getElementById('btn-toggle').classList.add('active');
-    document.getElementById('status-mode').textContent = 'PREVIEW';
+    document.getElementById('status-mode').textContent = '预览';
     iconPreview.style.display = 'none';
     iconEdit.style.display = '';
     currentMode = 'preview';
@@ -163,7 +163,7 @@ function toggleMode() {
     pc.classList.remove('active');
     ($.editorContainer || document.getElementById('editor-container')).classList.add('active');
     document.getElementById('btn-toggle').classList.remove('active');
-    document.getElementById('status-mode').textContent = 'EDIT';
+    document.getElementById('status-mode').textContent = '编辑';
     iconPreview.style.display = '';
     iconEdit.style.display = 'none';
     currentMode = 'edit';
@@ -184,13 +184,13 @@ function setTitle(title) {
 
 function onFileSaved() {
   var info = document.getElementById('status-info');
-  info.textContent = 'Saved';
+  info.textContent = '已保存';
   setTimeout(function() { info.textContent = ''; }, 2000);
 }
 
 function showError(message) {
   var info = document.getElementById('status-info');
-  info.textContent = 'Error: ' + message;
+  info.textContent = '错误：' + message;
   info.style.color = '#c15050';
   setTimeout(function() { info.textContent = ''; info.style.color = ''; }, 5000);
 }
@@ -207,7 +207,7 @@ function toggleSplit() {
     ($.previewContainer || document.getElementById('preview-container')).classList.remove('active');
     currentMode = 'edit';
     document.getElementById('btn-toggle').classList.remove('active');
-    document.getElementById('status-mode').textContent = 'EDIT';
+    document.getElementById('status-mode').textContent = '编辑';
     iconPreview.style.display = '';
     iconEdit.style.display = 'none';
     ($.editor || document.getElementById('editor')).focus();
@@ -230,7 +230,7 @@ function toggleSplit() {
     resolveLocalImages();
     currentMode = 'edit';
     document.getElementById('btn-toggle').classList.remove('active');
-    document.getElementById('status-mode').textContent = 'SPLIT';
+    document.getElementById('status-mode').textContent = '分栏';
     iconPreview.style.display = '';
     iconEdit.style.display = 'none';
     document.getElementById('editor').focus();
@@ -251,11 +251,17 @@ function updateSplitPreview() {
   }, 150);
 }
 
-// Word count
+// Word count. A Chinese paragraph has no spaces, so splitting on /\s+/ alone
+// would report 1 - count CJK per character and the rest per whitespace run.
+var CJK_CHAR = /[㐀-䶿一-鿿豈-﫿぀-ヿ]/g;
+var CJK_PUNCT = /[　-〿＀-￯]/g;
+
 function updateWordCount() {
   var text = ($.editor || document.getElementById('editor')).value;
-  var words = text.trim() ? text.trim().split(/\s+/).length : 0;
-  document.getElementById('status-counts').textContent = words + ' word' + (words !== 1 ? 's' : '');
+  var cjk = text.match(CJK_CHAR);
+  var rest = text.replace(CJK_CHAR, ' ').replace(CJK_PUNCT, ' ').trim();
+  var count = (cjk ? cjk.length : 0) + (rest ? rest.split(/\s+/).length : 0);
+  document.getElementById('status-counts').textContent = count + ' 字';
 }
 
 // Recent Files
@@ -285,7 +291,7 @@ function showRecentPanel() {
   panel.innerHTML = '';
   var title = document.createElement('div');
   title.className = 'recent-title';
-  title.textContent = 'Recent Files';
+  title.textContent = '最近打开';
   panel.appendChild(title);
   recent.forEach(function(r) {
     var item = document.createElement('div');
@@ -332,7 +338,7 @@ function updateTOC() {
   if (headings.length === 0) {
     var empty = document.createElement('div');
     empty.className = 'toc-empty';
-    empty.textContent = 'No headings';
+    empty.textContent = '没有标题';
     list.appendChild(empty);
     return;
   }
@@ -564,9 +570,9 @@ function findPrev() {
 function updateFindCount() {
   var el = document.getElementById('find-count');
   if (findState.matches.length === 0) {
-    el.textContent = document.getElementById('find-input').value ? 'No results' : '';
+    el.textContent = document.getElementById('find-input').value ? '无结果' : '';
   } else {
-    el.textContent = (findState.current + 1) + ' of ' + findState.matches.length;
+    el.textContent = (findState.current + 1) + ' / ' + findState.matches.length;
   }
 }
 
@@ -638,7 +644,7 @@ document.getElementById('btn-minimize').addEventListener('click', function() { s
 document.getElementById('btn-maximize').addEventListener('click', function() { sendToRust('window_maximize'); });
 document.getElementById('btn-close').addEventListener('click', function() {
   if (TabManager.hasAnyDirty()) {
-    if (!confirm('You have unsaved changes. Close anyway?')) return;
+    if (!confirm('有未保存的更改，仍要关闭吗？')) return;
   }
   sendToRust('window_close');
 });
@@ -651,24 +657,10 @@ document.getElementById('btn-toggle').addEventListener('click', toggleMode);
 document.getElementById('btn-split').addEventListener('click', toggleSplit);
 document.getElementById('btn-toc').addEventListener('click', toggleTOC);
 
-// Theme Toggle
-function setTheme(theme) {
-  document.documentElement.setAttribute('data-theme', theme);
-  document.getElementById('icon-sun').style.display = theme === 'light' ? '' : 'none';
-  document.getElementById('icon-moon').style.display = theme === 'light' ? 'none' : '';
-  try { localStorage.setItem('peekdown-theme', theme); } catch(e) {}
-}
-
-document.getElementById('btn-theme').addEventListener('click', function() {
-  var current = document.documentElement.getAttribute('data-theme') || 'dark';
-  setTheme(current === 'dark' ? 'light' : 'dark');
-});
+// Theme, fonts and font sizes live in settings.js
 
 // Init
 document.addEventListener('DOMContentLoaded', function() {
-  var saved = null;
-  try { saved = localStorage.getItem('peekdown-theme'); } catch(e) {}
-  if (saved) setTheme(saved);
   TabManager.createTab(null, '');
   updateWordCount();
   showRecentPanel();

@@ -43,7 +43,7 @@ pub fn handle_ipc_message(
                         }));
                     }
                     Err(e) => send_to_js(webview, "error", &serde_json::json!({
-                        "message": format!("Failed to open file: {e}")
+                        "message": format!("打开文件失败：{e}")
                     })),
                 }
             }
@@ -58,7 +58,7 @@ pub fn handle_ipc_message(
                             }));
                         }
                         Err(e) => send_to_js(webview, "error", &serde_json::json!({
-                            "message": format!("Failed to save: {e}")
+                            "message": format!("保存失败：{e}")
                         })),
                     }
                 } else {
@@ -124,7 +124,7 @@ pub fn handle_ipc_message(
                         }));
                     }
                     Err(e) => send_to_js(webview, "error", &serde_json::json!({
-                        "message": format!("Failed to open file: {e}")
+                        "message": format!("打开文件失败：{e}")
                     })),
                 }
             } else if let Some(content) = pending_content {
@@ -152,7 +152,7 @@ fn handle_save_as(
                     }));
                 }
                 Err(e) => send_to_js(webview, "error", &serde_json::json!({
-                    "message": format!("Failed to save: {e}")
+                    "message": format!("保存失败：{e}")
                 })),
             }
         }

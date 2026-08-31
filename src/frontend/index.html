@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,41 +8,40 @@
 <body>
   <div id="titlebar">
     <div class="titlebar-actions">
-      <button id="btn-new" title="New (Ctrl+N)">
+      <button id="btn-new" title="新建 (Ctrl+N)">
         <svg viewBox="0 0 1024 1024" fill="currentColor"><path fill-rule="evenodd" d="M298.666667 85.333333h268.8a85.333333 85.333333 0 0 1 60.330666 24.996667l161.536 161.536A85.333333 85.333333 0 0 1 810.666667 332.8V853.333333a85.333333 85.333333 0 0 1-85.333334 85.333334H298.666667a85.333333 85.333333 0 0 1-85.333334-85.333334V170.666667a85.333333 85.333333 0 0 1 85.333334-85.333334z m213.333333 341.333334a42.666667 42.666667 0 0 0-42.666667 42.666666v64h-64a42.666667 42.666667 0 1 0 0 85.333334h64v64a42.666667 42.666667 0 1 0 85.333334 0v-64h64a42.666667 42.666667 0 1 0 0-85.333334h-64v-64a42.666667 42.666667 0 0 0-42.666667-42.666666z"/></svg>
       </button>
-      <button id="btn-open" title="Open (Ctrl+O)">
+      <button id="btn-open" title="打开 (Ctrl+O)">
         <svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M369.066667 128a42.666667 42.666667 0 0 1 30.762666 13.098667l56.917334 59.136a42.666667 42.666667 0 0 0 30.72 13.098666H853.333333a85.333333 85.333333 0 0 1 85.333334 85.333334v512a85.333333 85.333333 0 0 1-85.333334 85.333333H170.666667a85.333333 85.333333 0 0 1-85.333334-85.333333V213.333333a85.333333 85.333333 0 0 1 85.333334-85.333333h198.4z m377.6 256h-469.333334a42.666667 42.666667 0 1 0 0 85.333333h469.333334a42.666667 42.666667 0 0 0 0-85.333333z"/></svg>
       </button>
-      <button id="btn-save" title="Save (Ctrl+S)">
+      <button id="btn-save" title="保存 (Ctrl+S)">
         <svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M469.333333 128h85.333334a42.666667 42.666667 0 0 1 42.666666 42.666667v266.666666h100.906667a42.666667 42.666667 0 0 1 31.146667 71.850667l-186.88 199.253333a42.666667 42.666667 0 0 1-62.293334 0l-186.88-199.253333A42.666667 42.666667 0 0 1 325.12 437.333333H426.666667V170.666667A42.666667 42.666667 0 0 1 469.333333 128z"/><path d="M170.666667 640a42.666667 42.666667 0 0 1 42.666666 42.666667v128h597.333334v-128a42.666667 42.666667 0 1 1 85.333333 0v149.333333a64 64 0 0 1-64 64H192a64 64 0 0 1-64-64V682.666667a42.666667 42.666667 0 0 1 42.666667-42.666667z"/></svg>
       </button>
       <div class="titlebar-sep"></div>
-      <button id="btn-toggle" title="Toggle Preview (Ctrl+E)">
+      <button id="btn-toggle" title="切换预览 (Ctrl+E)">
         <svg id="icon-preview" viewBox="0 0 1024 1024" fill="currentColor"><path fill-rule="evenodd" d="M512 213.333333c184.746667 0 340.906667 99.555556 426.666667 298.666667-85.76 199.111111-241.92 298.666667-426.666667 298.666667S171.093333 711.111111 85.333333 512C171.093333 312.888889 327.253333 213.333333 512 213.333333z m0 106.666667a192 192 0 1 0 0 384 192 192 0 0 0 0-384z"/><path d="M512 405.333333a106.666667 106.666667 0 1 1 0 213.333334 106.666667 106.666667 0 0 1 0-213.333334z"/></svg>
         <svg id="icon-edit" viewBox="0 0 1024 1024" fill="currentColor" style="display:none"><path d="M723.626667 453.162667L348.245333 895.061333a64 64 0 0 1-38.016 21.674667l-121.045333 20.650667A42.666667 42.666667 0 0 1 139.392 896L137.472 772.266667a64 64 0 0 1 15.232-42.410667l374.826667-441.258667 196.053333 164.522667z m144.810666-269.909334a64 64 0 0 1 7.893334 90.154667l-0.256 0.298667-97.237334 114.432L582.826667 223.573333l97.706666-115.029333a64 64 0 0 1 89.898667-7.594667l98.048 82.261334z"/></svg>
       </button>
-      <button id="btn-split" title="Split View (Ctrl+\)">
+      <button id="btn-split" title="分栏视图 (Ctrl+\)">
         <svg viewBox="0 0 1024 1024" fill="currentColor"><path fill-rule="evenodd" d="M170.666667 149.333333h682.666666a85.333333 85.333333 0 0 1 85.333334 85.333334v554.666666a85.333333 85.333333 0 0 1-85.333334 85.333334H170.666667a85.333333 85.333333 0 0 1-85.333334-85.333334V234.666667a85.333333 85.333333 0 0 1 85.333334-85.333334z m0 85.333334v554.666666h298.666666V234.666667H170.666667z m384 0v554.666666h298.666666V234.666667H554.666667z"/></svg>
       </button>
-      <button id="btn-toc" title="Outline (Ctrl+Shift+O)">
+      <button id="btn-toc" title="大纲 (Ctrl+Shift+O)">
         <svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M768 85.333333a85.333333 85.333333 0 0 1 85.333333 85.333334v682.666666a85.333333 85.333333 0 0 1-85.333333 85.333334H256a85.333333 85.333333 0 0 1-85.333333-85.333334V170.666667a85.333333 85.333333 0 0 1 85.333333-85.333334h512z m-298.666667 341.333334H341.333333a42.666667 42.666667 0 0 0 0 85.333333h128a42.666667 42.666667 0 0 0 0-85.333333z m213.333334-170.666667H341.333333a42.666667 42.666667 0 1 0 0 85.333333h341.333334a42.666667 42.666667 0 0 0 0-85.333333z"/></svg>
       </button>
     </div>
-    <span id="titlebar-title">Untitled</span>
+    <span id="titlebar-title">未命名</span>
     <div id="window-controls">
-      <button id="btn-theme" title="Toggle Theme">
-        <svg id="icon-sun" viewBox="0 0 1024 1024" fill="currentColor" style="display:none"><circle cx="512" cy="512" r="181.333333"/><rect x="469.333333" y="85.333333" width="85.333333" height="128" rx="42.666667"/><rect x="469.333333" y="810.666667" width="85.333333" height="128" rx="42.666667"/><rect x="85.333333" y="469.333333" width="128" height="85.333333" rx="42.666667"/><rect x="810.666667" y="469.333333" width="128" height="85.333333" rx="42.666667"/><rect x="469.333333" y="85.333333" width="85.333333" height="128" rx="42.666667" transform="rotate(45 512 512)"/><rect x="469.333333" y="85.333333" width="85.333333" height="128" rx="42.666667" transform="rotate(135 512 512)"/><rect x="469.333333" y="85.333333" width="85.333333" height="128" rx="42.666667" transform="rotate(225 512 512)"/><rect x="469.333333" y="85.333333" width="85.333333" height="128" rx="42.666667" transform="rotate(315 512 512)"/></svg>
-        <svg id="icon-moon" viewBox="0 0 1024 1024" fill="currentColor"><path d="M864 544a352 352 0 0 1-384-384 352 352 0 1 0 384 384z"/></svg>
+      <button id="btn-settings" title="设置 (Ctrl+,)">
+        <svg viewBox="0 0 1024 1024" fill="currentColor"><path fill-rule="evenodd" d="M512 272a240 240 0 1 0 0 480 240 240 0 1 0 0-480z m0 128a112 112 0 1 1 0 224 112 112 0 1 1 0-224z"/><rect x="432" y="48" width="160" height="290" rx="40"/><rect x="432" y="48" width="160" height="290" rx="40" transform="rotate(60 512 512)"/><rect x="432" y="48" width="160" height="290" rx="40" transform="rotate(120 512 512)"/><rect x="432" y="48" width="160" height="290" rx="40" transform="rotate(180 512 512)"/><rect x="432" y="48" width="160" height="290" rx="40" transform="rotate(240 512 512)"/><rect x="432" y="48" width="160" height="290" rx="40" transform="rotate(300 512 512)"/></svg>
       </button>
       <div class="window-controls-sep"></div>
-      <button id="btn-minimize" title="Minimize">
+      <button id="btn-minimize" title="最小化">
         <svg viewBox="0 0 10 10"><line x1="2" y1="5" x2="8" y2="5"/></svg>
       </button>
-      <button id="btn-maximize" title="Maximize">
+      <button id="btn-maximize" title="最大化">
         <svg viewBox="0 0 10 10"><rect x="1.5" y="1.5" width="7" height="7" rx="1"/></svg>
       </button>
-      <button id="btn-close" title="Close">
+      <button id="btn-close" title="关闭">
         <svg viewBox="0 0 10 10"><line x1="2" y1="2" x2="8" y2="8"/><line x1="8" y1="2" x2="2" y2="8"/></svg>
       </button>
     </div>
@@ -51,15 +50,15 @@
   <div id="tab-bar"></div>
 
   <div id="find-bar">
-    <input id="find-input" type="text" placeholder="Find..." spellcheck="false">
+    <input id="find-input" type="text" placeholder="查找…" spellcheck="false">
     <span id="find-count"></span>
-    <button id="find-prev" title="Previous (Shift+Enter)">
+    <button id="find-prev" title="上一个 (Shift+Enter)">
       <svg viewBox="0 0 10 10"><polyline points="2,7 5,3 8,7" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </button>
-    <button id="find-next" title="Next (Enter)">
+    <button id="find-next" title="下一个 (Enter)">
       <svg viewBox="0 0 10 10"><polyline points="2,3 5,7 8,3" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </button>
-    <button id="find-close" title="Close (Escape)">
+    <button id="find-close" title="关闭 (Esc)">
       <svg viewBox="0 0 10 10"><line x1="2" y1="2" x2="8" y2="8"/><line x1="8" y1="2" x2="2" y2="8"/></svg>
     </button>
   </div>
@@ -70,7 +69,7 @@
     </div>
     <div id="editor-container" class="active">
       <div id="recent-panel"></div>
-      <textarea id="editor" placeholder="Start writing markdown..." spellcheck="false"></textarea>
+      <textarea id="editor" placeholder="开始输入 Markdown…" spellcheck="false"></textarea>
     </div>
 
     <div id="preview-container">
@@ -79,17 +78,154 @@
         <div id="preview-resize-handle"></div>
       </div>
     </div>
+
+    <div id="settings-panel">
+      <div id="settings-header">
+        <button id="settings-back" title="返回 (Esc)">
+          <svg viewBox="0 0 1024 1024" fill="currentColor"><rect x="128" y="469.333333" width="768" height="85.333333" rx="42.666667"/><path d="M170.666667 512l301.994666-301.994667a42.666667 42.666667 0 0 1 60.341334 60.330667L291.328 512l241.674667 241.664a42.666667 42.666667 0 1 1-60.341334 60.341333L170.666667 512z"/></svg>
+        </button>
+        <span id="settings-title">设置</span>
+      </div>
+
+      <div id="settings-body">
+        <div class="settings-group">外观</div>
+
+        <div class="settings-card" data-card="theme">
+          <button class="settings-card-head">
+            <span class="settings-card-icon">
+              <svg viewBox="0 0 1024 1024" fill="currentColor"><path fill-rule="evenodd" d="M512 128a384 384 0 1 0 0 768 384 384 0 1 0 0-768z m0 85.333333a298.666667 298.666667 0 1 0 0 597.333334 298.666667 298.666667 0 1 0 0-597.333334z"/><path d="M512 256a256 256 0 0 1 0 512z"/></svg>
+            </span>
+            <span class="settings-card-text">
+              <span class="settings-card-title">应用主题</span>
+              <span class="settings-card-desc">选择要显示的应用主题</span>
+            </span>
+            <span class="settings-card-value" id="theme-value"></span>
+            <span class="settings-card-chevron"><svg viewBox="0 0 10 10"><polyline points="2,3.5 5,6.5 8,3.5"/></svg></span>
+          </button>
+          <div class="settings-card-body">
+            <label class="settings-radio"><input type="radio" name="pd-theme" value="light"><span>白天</span></label>
+            <label class="settings-radio"><input type="radio" name="pd-theme" value="dark"><span>夜间</span></label>
+            <label class="settings-radio"><input type="radio" name="pd-theme" value="system"><span>跟随系统</span></label>
+          </div>
+        </div>
+
+        <div class="settings-group">文本格式</div>
+
+        <div class="settings-card" data-card="ui">
+          <button class="settings-card-head">
+            <span class="settings-card-icon">
+              <svg viewBox="0 0 1024 1024" fill="currentColor"><rect x="128" y="192" width="768" height="96" rx="48"/><rect x="464" y="192" width="96" height="640" rx="48"/></svg>
+            </span>
+            <span class="settings-card-text">
+              <span class="settings-card-title">界面字体</span>
+              <span class="settings-card-desc">标题栏、标签页、状态栏、大纲</span>
+            </span>
+            <span class="settings-card-value" data-value="ui"></span>
+            <span class="settings-card-chevron"><svg viewBox="0 0 10 10"><polyline points="2,3.5 5,6.5 8,3.5"/></svg></span>
+          </button>
+          <div class="settings-card-body">
+            <div class="settings-row">
+              <span class="settings-row-label">字体</span>
+              <select class="settings-select" data-family="ui"></select>
+            </div>
+            <div class="settings-row">
+              <span class="settings-row-label">字号</span>
+              <select class="settings-select size" data-size="ui"></select>
+            </div>
+            <div class="settings-sample" data-sample="ui">界面示例 Interface 0123</div>
+          </div>
+        </div>
+
+        <div class="settings-card" data-card="editor">
+          <button class="settings-card-head">
+            <span class="settings-card-icon">
+              <svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M723.626667 453.162667L348.245333 895.061333a64 64 0 0 1-38.016 21.674667l-121.045333 20.650667A42.666667 42.666667 0 0 1 139.392 896L137.472 772.266667a64 64 0 0 1 15.232-42.410667l374.826667-441.258667 196.053333 164.522667z m144.810666-269.909334a64 64 0 0 1 7.893334 90.154667l-0.256 0.298667-97.237334 114.432L582.826667 223.573333l97.706666-115.029333a64 64 0 0 1 89.898667-7.594667l98.048 82.261334z"/></svg>
+            </span>
+            <span class="settings-card-text">
+              <span class="settings-card-title">编辑器字体</span>
+              <span class="settings-card-desc">编辑区的等宽字体</span>
+            </span>
+            <span class="settings-card-value" data-value="editor"></span>
+            <span class="settings-card-chevron"><svg viewBox="0 0 10 10"><polyline points="2,3.5 5,6.5 8,3.5"/></svg></span>
+          </button>
+          <div class="settings-card-body">
+            <div class="settings-row">
+              <span class="settings-row-label">字体</span>
+              <select class="settings-select" data-family="editor"></select>
+            </div>
+            <div class="settings-row">
+              <span class="settings-row-label">字号</span>
+              <select class="settings-select size" data-size="editor"></select>
+            </div>
+            <div class="settings-sample" data-sample="editor"># 标题 const x = 1; 0123</div>
+          </div>
+        </div>
+
+        <div class="settings-card" data-card="reading">
+          <button class="settings-card-head">
+            <span class="settings-card-icon">
+              <svg viewBox="0 0 1024 1024" fill="currentColor"><path fill-rule="evenodd" d="M512 213.333333c184.746667 0 340.906667 99.555556 426.666667 298.666667-85.76 199.111111-241.92 298.666667-426.666667 298.666667S171.093333 711.111111 85.333333 512C171.093333 312.888889 327.253333 213.333333 512 213.333333z m0 106.666667a192 192 0 1 0 0 384 192 192 0 0 0 0-384z"/><path d="M512 405.333333a106.666667 106.666667 0 1 1 0 213.333334 106.666667 106.666667 0 0 1 0-213.333334z"/></svg>
+            </span>
+            <span class="settings-card-text">
+              <span class="settings-card-title">阅读字体</span>
+              <span class="settings-card-desc">预览区的正文字体</span>
+            </span>
+            <span class="settings-card-value" data-value="reading"></span>
+            <span class="settings-card-chevron"><svg viewBox="0 0 10 10"><polyline points="2,3.5 5,6.5 8,3.5"/></svg></span>
+          </button>
+          <div class="settings-card-body">
+            <div class="settings-row">
+              <span class="settings-row-label">字体</span>
+              <select class="settings-select" data-family="reading"></select>
+            </div>
+            <div class="settings-row">
+              <span class="settings-row-label">字号</span>
+              <select class="settings-select size" data-size="reading"></select>
+            </div>
+            <div class="settings-sample" data-sample="reading">阅读示例 Reading 0123</div>
+          </div>
+        </div>
+
+        <div class="settings-group">关于</div>
+
+        <div class="settings-card static">
+          <div class="settings-card-head">
+            <span class="settings-card-icon">
+              <svg viewBox="0 0 1024 1024" fill="currentColor"><path fill-rule="evenodd" d="M512 85.333333a426.666667 426.666667 0 1 1 0 853.333334 426.666667 426.666667 0 0 1 0-853.333334z m0 341.333334a42.666667 42.666667 0 0 0-42.666667 42.666666v213.333334a42.666667 42.666667 0 0 0 85.333334 0V469.333333a42.666667 42.666667 0 0 0-42.666667-42.666666z m0-149.333334a53.333333 53.333333 0 1 0 0 106.666667 53.333333 53.333333 0 0 0 0-106.666667z"/></svg>
+            </span>
+            <span class="settings-card-text">
+              <span class="settings-card-title">Peekdown</span>
+              <span class="settings-card-desc">轻量 Markdown 阅读与编辑器</span>
+            </span>
+            <span class="settings-card-value" id="about-version">__VERSION__</span>
+          </div>
+        </div>
+
+        <div class="settings-card static">
+          <div class="settings-card-head">
+            <span class="settings-card-text">
+              <span class="settings-about">
+                <b>Ctrl+E</b> 切换预览　<b>Ctrl+\</b> 分栏　<b>Ctrl+Shift+O</b> 大纲<br>
+                <b>Ctrl+F</b> 查找　<b>Ctrl+N/O/S</b> 新建/打开/保存<br>
+                <b>Ctrl+Tab</b> 切换标签　<b>Ctrl+W</b> 关闭标签　<b>Ctrl+,</b> 设置<br>
+                <b>Ctrl + 滚轮</b> 或 <b>Ctrl+=/-/0</b> 缩放正文
+              </span>
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <div id="zoom-toast"></div>
 
   <div id="drop-overlay">
-    <div class="drop-message">Drop to open</div>
+    <div class="drop-message">松开以打开</div>
   </div>
 
   <div id="statusbar">
-    <span id="status-mode">EDIT</span>
-    <span id="status-file">Untitled</span>
+    <span id="status-mode">编辑</span>
+    <span id="status-file">未命名</span>
     <span id="status-counts"></span>
     <span id="status-info"></span>
   </div>

@@ -24,6 +24,7 @@ const APP_JS: &str = include_str!("frontend/app.js");
 const EDITOR_JS: &str = include_str!("frontend/editor.js");
 const PREVIEW_JS: &str = include_str!("frontend/preview.js");
 const TABS_JS: &str = include_str!("frontend/tabs.js");
+const SETTINGS_JS: &str = include_str!("frontend/settings.js");
 const MARKED_JS: &str = include_str!("frontend/marked.min.js");
 const HLJS: &str = include_str!("frontend/highlight.min.js");
 
@@ -92,7 +93,7 @@ fn main() {
     let proxy: EventLoopProxy<UserEvent> = event_loop.create_proxy();
 
     let window = WindowBuilder::new()
-        .with_title("Peekdown - Untitled")
+        .with_title("Peekdown - 未命名")
         .with_decorations(false)
         .with_inner_size(LogicalSize::new(size.0 as f64, size.1 as f64))
         .with_position(LogicalPosition::new(pos.0 as f64, pos.1 as f64))
@@ -252,18 +253,21 @@ fn escape_for_script_tag(js: &str) -> String {
 }
 
 fn build_html() -> String {
-    // Build script tags with escaped content
+    // Build script tags with escaped content.
+    // settings.js goes last: it reads the DOM and app.js helpers at parse time.
     let scripts = format!(
-        "<script>{}</script>\n<script>{}</script>\n<script>{}</script>\n<script>{}</script>\n<script>{}</script>\n<script>{}</script>",
+        "<script>{}</script>\n<script>{}</script>\n<script>{}</script>\n<script>{}</script>\n<script>{}</script>\n<script>{}</script>\n<script>{}</script>",
         escape_for_script_tag(HLJS),
         escape_for_script_tag(MARKED_JS),
         escape_for_script_tag(PREVIEW_JS),
         escape_for_script_tag(TABS_JS),
         escape_for_script_tag(EDITOR_JS),
         escape_for_script_tag(APP_JS),
+        escape_for_script_tag(SETTINGS_JS),
     );
 
     INDEX_HTML
         .replace("/* __CSS__ */", STYLE_CSS)
+        .replace("__VERSION__", env!("CARGO_PKG_VERSION"))
         .replace("<!-- __SCRIPTS__ -->", &scripts)
 }
