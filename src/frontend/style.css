@@ -737,10 +737,12 @@ body.preview-resizing #preview { user-select: none; }
   align-items: center;
   justify-content: center;
   gap: 4px;
-  background: var(--bg-base);
-  /* This covers the whole textarea on an empty tab. Without opting out of
-     hit-testing, clicking anywhere on the blank page hit the panel instead of the
-     editor — so a new document looked like it could not be typed into. */
+  /* Transparent, not --bg-base: the editor underneath keeps showing its
+     placeholder and its blinking caret, so an empty tab reads as "type here, or
+     reopen one of these" rather than as a page that swallowed the editor. */
+  background: transparent;
+  /* And without opting out of hit-testing, clicking anywhere on the blank page
+     hit the panel instead of the editor — a new document looked untypeable. */
   pointer-events: none;
 }
 

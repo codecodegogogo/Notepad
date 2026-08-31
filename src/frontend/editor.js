@@ -5,11 +5,13 @@
   editor.addEventListener('input', function() {
     var activeTab = TabManager.getActiveTab();
     if (activeTab) activeTab.parsedHtml = null;
+    // Not debounced: the recent-files list sits over the empty page, and waiting
+    // 300ms to drop it means the first characters you type appear underneath it.
+    if (typeof showRecentPanel === 'function') showRecentPanel();
     clearTimeout(changeTimer);
     changeTimer = setTimeout(function() {
       TabManager.markDirty();
       updateWordCount();
-      if (typeof showRecentPanel === 'function') showRecentPanel();
       if (typeof tocOpen !== 'undefined' && tocOpen) updateTOC();
     }, 300);
     if (typeof splitMode !== 'undefined' && splitMode) {
