@@ -4,7 +4,7 @@ use std::borrow::Cow;
 use std::io::Read;
 use std::sync::{Arc, Mutex};
 use tao::{
-    dpi::{LogicalPosition, LogicalSize},
+    dpi::{PhysicalPosition, PhysicalSize},
     event::{Event, WindowEvent},
     event_loop::{ControlFlow, EventLoopBuilder, EventLoopProxy},
     window::WindowBuilder,
@@ -87,16 +87,32 @@ fn main() {
         }
     }
 
-    let (pos, size) = window_state::load_window_state();
-
     let event_loop = EventLoopBuilder::<UserEvent>::with_user_event().build();
     let proxy: EventLoopProxy<UserEvent> = event_loop.create_proxy();
+
+    // Monitors are only enumerable once the event loop exists, and the saved
+    // rectangle has to be checked against them before the window is built.
+    let monitors: Vec<(i32, i32, u32, u32)> = event_loop
+        .available_monitors()
+        .map(|m| {
+            let p = m.position();
+            let s = m.size();
+            (p.x, p.y, s.width, s.height)
+        })
+        .collect();
+    let saved = window_state::fit_to_monitors(window_state::load_window_state(), &monitors);
+    {
+        let mut st = app_state.lock().unwrap();
+        st.normal_pos = (saved.x, saved.y);
+        st.normal_size = (saved.width, saved.height);
+    }
 
     let window = WindowBuilder::new()
         .with_title("Peekdown - 未命名")
         .with_decorations(false)
-        .with_inner_size(LogicalSize::new(size.0 as f64, size.1 as f64))
-        .with_position(LogicalPosition::new(pos.0 as f64, pos.1 as f64))
+        .with_inner_size(PhysicalSize::new(saved.width, saved.height))
+        .with_position(PhysicalPosition::new(saved.x, saved.y))
+        .with_maximized(saved.maximized)
         .build(&event_loop)
         .unwrap();
 
@@ -173,20 +189,30 @@ fn main() {
                 wry::DragDropEvent::Drop { paths, .. } => {
                     let leave = serde_json::json!({"command": "drag_leave"}).to_string();
                     let _ = proxy_drop.send_event(UserEvent::IpcMessage(leave));
+                    // No extension whitelist: a .mdx / .mdown / extensionless
+                    // note used to be dropped on the floor with no feedback at
+                    // all. Anything that is not valid UTF-8 gets a real error
+                    // message from the read instead.
+                    let mut sent = 0;
                     for path in &paths {
-                        let ext = path
-                            .extension()
-                            .and_then(|e| e.to_str())
-                            .unwrap_or("")
-                            .to_lowercase();
-                        if ext == "md" || ext == "markdown" || ext == "txt" {
-                            let msg = serde_json::json!({
-                                "command": "open_file",
-                                "path": path.to_string_lossy()
-                            })
-                            .to_string();
-                            let _ = proxy_drop.send_event(UserEvent::IpcMessage(msg));
+                        if path.is_dir() {
+                            continue;
                         }
+                        let msg = serde_json::json!({
+                            "command": "open_file",
+                            "path": path.to_string_lossy()
+                        })
+                        .to_string();
+                        let _ = proxy_drop.send_event(UserEvent::IpcMessage(msg));
+                        sent += 1;
+                    }
+                    if sent == 0 {
+                        let msg = serde_json::json!({
+                            "command": "show_error",
+                            "message": "只能拖入文件，不支持文件夹"
+                        })
+                        .to_string();
+                        let _ = proxy_drop.send_event(UserEvent::IpcMessage(msg));
                     }
                 }
                 wry::DragDropEvent::Leave => {
@@ -206,6 +232,11 @@ fn main() {
     if let Some(file_path) = cli_file {
         app_state.lock().unwrap().pending_file = Some(file_path);
     }
+
+    // JS mirrors this to pick the maximize vs. restore glyph. Windows can change
+    // it behind our back (double-clicking the drag region, Win+Up, edge snap),
+    // so the value is pushed from here rather than guessed in the click handler.
+    let mut last_maximized = saved.maximized;
 
     event_loop.run(move |event, _, control_flow| {
         *control_flow = ControlFlow::Wait;
@@ -229,17 +260,34 @@ fn main() {
                             SWP_ASYNCWINDOWPOS | SWP_NOACTIVATE | SWP_NOZORDER);
                     }
                 }
+                let maximized = window.is_maximized();
+                // Minimizing also fires Resized, with a 0x0 size — recording it
+                // would persist a degenerate window for the next launch.
+                if !maximized && new_size.width > 0 && new_size.height > 0 {
+                    app_state.lock().unwrap().normal_size = (new_size.width, new_size.height);
+                }
+                if maximized != last_maximized {
+                    last_maximized = maximized;
+                    let _ = _webview
+                        .evaluate_script(&format!("window.__setMaximized({maximized})"));
+                }
+            }
+            Event::WindowEvent {
+                event: WindowEvent::Moved(new_pos),
+                ..
+            } => {
+                // Windows parks minimized windows at -32000 and still reports
+                // them as not maximized, so filter that out before recording.
+                let parked = new_pos.x < -30000 || new_pos.y < -30000;
+                if !parked && !window.is_maximized() {
+                    app_state.lock().unwrap().normal_pos = (new_pos.x, new_pos.y);
+                }
             }
             Event::WindowEvent {
                 event: WindowEvent::CloseRequested,
                 ..
             } => {
-                let inner_size = window.inner_size();
-                let outer_pos = window.outer_position().unwrap_or_default();
-                window_state::save_window_state(
-                    (outer_pos.x, outer_pos.y),
-                    (inner_size.width, inner_size.height),
-                );
+                ipc::save_geometry(&window, &app_state);
                 *control_flow = ControlFlow::Exit;
             }
             _ => {}

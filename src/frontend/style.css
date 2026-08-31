@@ -285,6 +285,26 @@ html, body {
 
 .tab-close:hover { opacity: 1 !important; color: var(--text); }
 
+.tab-new {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: calc(20px * var(--ui-scale));
+  height: calc(20px * var(--ui-scale));
+  border-radius: 4px;
+  font-size: calc(15px * var(--ui-scale));
+  line-height: 1;
+  color: var(--text-dim);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: color 0.12s, background 0.12s;
+}
+
+.tab-new:hover {
+  color: var(--text);
+  background: rgba(128, 128, 128, 0.08);
+}
+
 /* ============================================
    CONTENT AREA
    ============================================ */
@@ -1121,6 +1141,9 @@ mark.find-match.find-active {
   justify-content: center;
   align-items: center;
   backdrop-filter: blur(8px);
+  /* Once visible this covers the viewport. Without opting out of hit-testing it
+     becomes the drag target itself, and a bare div rejects the drop. */
+  pointer-events: none;
 }
 
 #drop-overlay.visible { display: flex; }

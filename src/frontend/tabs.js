@@ -11,7 +11,13 @@ var TabManager = (function() {
     if (path) {
       var existing = findTabByPath(path);
       if (existing) {
+        var alreadyActive = existing.id === activeTabId;
         switchTab(existing.id);
+        // Re-dropping the file you are already reading changes nothing on
+        // screen, which reads as the drop having been ignored.
+        if (alreadyActive && typeof showInfo === 'function') {
+          showInfo('该文件已在当前标签中打开');
+        }
         return existing;
       }
     }
@@ -213,6 +219,17 @@ var TabManager = (function() {
       });
       bar.appendChild(el);
     });
+
+    // Trailing "+". Only reachable while the bar is on screen, which is the
+    // point: once you can see tabs, adding one shouldn't require knowing Ctrl+N.
+    if (show) {
+      var add = document.createElement('div');
+      add.className = 'tab-new';
+      add.textContent = '+';
+      add.title = '新建标签页 (Ctrl+N)';
+      add.addEventListener('click', function() { createTab(null, ''); });
+      bar.appendChild(add);
+    }
   }
 
   function nextTab() {

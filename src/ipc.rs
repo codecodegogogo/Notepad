@@ -15,6 +15,44 @@ struct IpcMessage {
     path: Option<String>,
     #[serde(default)]
     title: Option<String>,
+    #[serde(default)]
+    message: Option<String>,
+}
+
+/// Persists the geometry the window should come back to. Reads the live-tracked
+/// non-maximized rectangle rather than asking the window, which would report the
+/// maximized bounds while maximized.
+pub fn save_geometry(window: &Window, state: &Arc<Mutex<AppState>>) {
+    let (pos, size) = {
+        let st = state.lock().unwrap();
+        (st.normal_pos, st.normal_size)
+    };
+    crate::window_state::save_window_state(pos, size, window.is_maximized());
+}
+
+fn push_maximized(webview: &WebView, window: &Window) {
+    let _ = webview.evaluate_script(&format!("window.__setMaximized({})", window.is_maximized()));
+}
+
+fn open_and_send(webview: &WebView, path: &str) {
+    match file_ops::read_file(path) {
+        Ok(contents) => {
+            send_to_js(webview, "file_opened", &serde_json::json!({
+                "content": contents,
+                "path": path
+            }));
+        }
+        Err(e) => {
+            // read_to_string reports non-UTF-8 as InvalidData, whose default
+            // message is opaque English about a stream.
+            let message = if e.kind() == std::io::ErrorKind::InvalidData {
+                "无法打开：这不是 UTF-8 文本文件".to_string()
+            } else {
+                format!("打开文件失败：{e}")
+            };
+            send_to_js(webview, "error", &serde_json::json!({ "message": message }));
+        }
+    }
 }
 
 pub fn handle_ipc_message(
@@ -35,17 +73,7 @@ pub fn handle_ipc_message(
         "open_file" => {
             let path = parsed.path.or_else(file_ops::pick_open_file);
             if let Some(p) = path {
-                match file_ops::read_file(&p) {
-                    Ok(contents) => {
-                        send_to_js(webview, "file_opened", &serde_json::json!({
-                            "content": contents,
-                            "path": p
-                        }));
-                    }
-                    Err(e) => send_to_js(webview, "error", &serde_json::json!({
-                        "message": format!("打开文件失败：{e}")
-                    })),
-                }
+                open_and_send(webview, &p);
             }
         }
         "save_file" => {
@@ -79,15 +107,16 @@ pub fn handle_ipc_message(
         }
         "window_maximize" => {
             window.set_maximized(!window.is_maximized());
+            push_maximized(webview, window);
         }
         "window_close" => {
-            let inner_size = window.inner_size();
-            let outer_pos = window.outer_position().unwrap_or_default();
-            crate::window_state::save_window_state(
-                (outer_pos.x, outer_pos.y),
-                (inner_size.width, inner_size.height),
-            );
+            save_geometry(window, state);
             std::process::exit(0);
+        }
+        "show_error" => {
+            if let Some(message) = parsed.message {
+                send_to_js(webview, "error", &serde_json::json!({ "message": message }));
+            }
         }
         "read_image" => {
             if let Some(ref path) = parsed.path {
@@ -111,22 +140,14 @@ pub fn handle_ipc_message(
                 "document.getElementById('drop-overlay').classList.remove('visible')");
         }
         "ready" => {
+            // The window may already have been built maximized from the saved state.
+            push_maximized(webview, window);
             let (pending_file, pending_content, pending_title) = {
                 let mut st = state.lock().unwrap();
                 (st.pending_file.take(), st.pending_content.take(), st.pending_title.take())
             };
             if let Some(p) = pending_file {
-                match file_ops::read_file(&p) {
-                    Ok(contents) => {
-                        send_to_js(webview, "file_opened", &serde_json::json!({
-                            "content": contents,
-                            "path": p
-                        }));
-                    }
-                    Err(e) => send_to_js(webview, "error", &serde_json::json!({
-                        "message": format!("打开文件失败：{e}")
-                    })),
-                }
+                open_and_send(webview, &p);
             } else if let Some(content) = pending_content {
                 let title = pending_title.unwrap_or_else(|| "stdin".to_string());
                 send_to_js(webview, "stdin_opened", &serde_json::json!({

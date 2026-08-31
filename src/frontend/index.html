@@ -8,7 +8,7 @@
 <body>
   <div id="titlebar">
     <div class="titlebar-actions">
-      <button id="btn-new" title="新建 (Ctrl+N)">
+      <button id="btn-new" title="新建标签页 (Ctrl+N)">
         <svg viewBox="0 0 1024 1024" fill="currentColor"><path fill-rule="evenodd" d="M298.666667 85.333333h268.8a85.333333 85.333333 0 0 1 60.330666 24.996667l161.536 161.536A85.333333 85.333333 0 0 1 810.666667 332.8V853.333333a85.333333 85.333333 0 0 1-85.333334 85.333334H298.666667a85.333333 85.333333 0 0 1-85.333334-85.333334V170.666667a85.333333 85.333333 0 0 1 85.333334-85.333334z m213.333333 341.333334a42.666667 42.666667 0 0 0-42.666667 42.666666v64h-64a42.666667 42.666667 0 1 0 0 85.333334h64v64a42.666667 42.666667 0 1 0 85.333334 0v-64h64a42.666667 42.666667 0 1 0 0-85.333334h-64v-64a42.666667 42.666667 0 0 0-42.666667-42.666666z"/></svg>
       </button>
       <button id="btn-open" title="打开 (Ctrl+O)">
@@ -39,7 +39,8 @@
         <svg viewBox="0 0 10 10"><line x1="2" y1="5" x2="8" y2="5"/></svg>
       </button>
       <button id="btn-maximize" title="最大化">
-        <svg viewBox="0 0 10 10"><rect x="1.5" y="1.5" width="7" height="7" rx="1"/></svg>
+        <svg id="icon-maximize" viewBox="0 0 10 10"><rect x="1.5" y="1.5" width="7" height="7" rx="1"/></svg>
+        <svg id="icon-restore" viewBox="0 0 10 10" style="display:none"><path d="M3.2 3.2V2.4a0.9 0.9 0 0 1 0.9-0.9h3.5a0.9 0.9 0 0 1 0.9 0.9v3.5a0.9 0.9 0 0 1-0.9 0.9h-0.8"/><rect x="1.5" y="3.2" width="5.3" height="5.3" rx="0.9"/></svg>
       </button>
       <button id="btn-close" title="关闭">
         <svg viewBox="0 0 10 10"><line x1="2" y1="2" x2="8" y2="8"/><line x1="8" y1="2" x2="2" y2="8"/></svg>
@@ -206,7 +207,7 @@
             <span class="settings-card-text">
               <span class="settings-about">
                 <b>Ctrl+E</b> 切换预览　<b>Ctrl+\</b> 分栏　<b>Ctrl+Shift+O</b> 大纲<br>
-                <b>Ctrl+F</b> 查找　<b>Ctrl+N/O/S</b> 新建/打开/保存<br>
+                <b>Ctrl+F</b> 查找　<b>Ctrl+N/O/S</b> 新建标签/打开/保存<br>
                 <b>Ctrl+Tab</b> 切换标签　<b>Ctrl+W</b> 关闭标签　<b>Ctrl+,</b> 设置<br>
                 <b>Ctrl + 滚轮</b> 或 <b>Ctrl+=/-/0</b> 缩放正文
               </span>

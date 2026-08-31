@@ -23,8 +23,8 @@ Binary output: `target/release/peekdown.exe`
 - `src/main.rs` — Entry point, window + WebView setup, event loop, HTML assembly
 - `src/ipc.rs` — IPC message dispatch between Rust and JS
 - `src/file_ops.rs` — File read/write, native open/save dialogs (rfd)
-- `src/state.rs` — App state (empty struct — JS owns all tab state)
-- `src/window_state.rs` — Window position/size persistence (config dir: `peekdown/`)
+- `src/state.rs` — App state: pending file/stdin payloads, assembled HTML, live non-maximized window geometry (JS owns all tab state)
+- `src/window_state.rs` — Window geometry + maximized-state persistence (config dir: `peekdown/`)
 - `build.rs` — Embeds app icon via winresource
 - `assets/notebook.ico` — App icon (48px; CI upsizes it to the smaller Windows shell sizes)
 - `src/frontend/` — All HTML/CSS/JS files (embedded at compile time via include_str!)
@@ -51,6 +51,17 @@ Binary output: `target/release/peekdown.exe`
 - Font sizing: `--ui-scale` scales every chrome font-size and the bar heights (`--h-titlebar`,
   `--h-tabbar`, `--h-statusbar`); `--font-size-editor` / `--font-size-preview` size the two panes
   and multiply with `--zoom` so Ctrl+scroll stays independent of the settings value
+- Window geometry is stored in **physical** pixels (`inner_size()` / `Moved` report physical;
+  restoring through `LogicalSize` re-multiplied by the scale factor and grew the window each
+  launch). `AppState` tracks the last non-maximized rectangle live, because a maximized window
+  can only report its maximized bounds — that plus `maximized: bool` is what gets persisted
+- Maximized state is pushed Rust → JS (`window.__setMaximized`) on `Resized`, on the
+  `window_maximize` command and on `ready`. The titlebar is an `app-region: drag` surface, so
+  Windows also maximizes on double-click / Win+Up / top-edge snap without JS hearing about it
+- Drag & drop runs native-first: wry's drop target reports real paths (needed for in-place
+  Ctrl+S). app.js mirrors the HTML5 drag events, `preventDefault`s them (Chromium otherwise
+  navigates to `file://`) and only falls back to `FileReader` if no `file_opened` arrives within
+  400 ms — so exactly one document opens no matter which layer won the drag
 - `__VERSION__` in index.html is replaced with `CARGO_PKG_VERSION` at compile time
 
 ## Features
@@ -58,7 +69,9 @@ Binary output: `target/release/peekdown.exe`
 - Settings panel (Ctrl+,) in the Win11-Notepad style — accordion cards, gear button top-right
 - Themes: Day / Night / Follow system (Catppuccin Latte / Mocha)
 - Configurable font family + size for all three slots (UI chrome, editor, reading)
-- Multi-tab with auto-hiding tab bar (single tab = no bar)
+- Multi-tab with auto-hiding tab bar (single tab = no bar) and a trailing `+` button
+- Window position, size and maximized state are restored on next launch
+- Maximize button swaps to a restore glyph while maximized
 - Split view (Ctrl+\) with live preview
 - Syntax highlighting for code blocks
 - Find bar (Ctrl+F) with match highlighting
@@ -67,7 +80,7 @@ Binary output: `target/release/peekdown.exe`
 - Draggable preview width
 - Recent files panel on empty tabs
 - Cross-mode selection preservation when toggling edit/preview
-- Drag & drop (single and multi-file)
+- Drag & drop (single and multi-file, any text file — folders are rejected with a message)
 - File associations via CLI arg
 
 ## Conventions

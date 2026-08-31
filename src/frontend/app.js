@@ -8,6 +8,7 @@ function sendToRust(command, data) {
 window.__fromRust = function(event, data) {
   switch (event) {
     case 'file_opened':
+      cancelDropFallback();
       addRecentFile(data.path);
       TabManager.createTab(data.path, data.content);
       break;
@@ -182,17 +183,28 @@ function setTitle(title) {
   ($.titlebarTitle || document.getElementById('titlebar-title')).textContent = title;
 }
 
-function onFileSaved() {
+// Transient status-bar line. One shared timer so a later message cannot be
+// wiped by an earlier one's expiry.
+var statusInfoTimer = null;
+
+function showInfo(message, ms) {
   var info = document.getElementById('status-info');
-  info.textContent = '已保存';
-  setTimeout(function() { info.textContent = ''; }, 2000);
+  info.textContent = message;
+  info.style.color = '';
+  clearTimeout(statusInfoTimer);
+  statusInfoTimer = setTimeout(function() { info.textContent = ''; }, ms || 2000);
+}
+
+function onFileSaved() {
+  showInfo('已保存');
 }
 
 function showError(message) {
   var info = document.getElementById('status-info');
   info.textContent = '错误：' + message;
   info.style.color = '#c15050';
-  setTimeout(function() { info.textContent = ''; info.style.color = ''; }, 5000);
+  clearTimeout(statusInfoTimer);
+  statusInfoTimer = setTimeout(function() { info.textContent = ''; info.style.color = ''; }, 5000);
 }
 
 // Split View
@@ -647,6 +659,97 @@ document.getElementById('btn-close').addEventListener('click', function() {
     if (!confirm('有未保存的更改，仍要关闭吗？')) return;
   }
   sendToRust('window_close');
+});
+
+// Rust owns the maximized flag and pushes it here. Guessing it from the click
+// would drift: the titlebar is a drag region, so Windows also maximizes on
+// double-click, on Win+Up and on a drag to the top edge, none of which reach JS.
+window.__setMaximized = function(maximized) {
+  var box = document.getElementById('icon-maximize');
+  var stack = document.getElementById('icon-restore');
+  if (!box || !stack) return;
+  box.style.display = maximized ? 'none' : '';
+  stack.style.display = maximized ? '' : 'none';
+  document.getElementById('btn-maximize').title = maximized ? '向下还原' : '最大化';
+};
+
+// Drag & drop.
+//
+// Rust's native drop target is the path we want: it reports real filesystem
+// paths, so Ctrl+S can write back in place. But if WebView2 claims the drag
+// instead, that handler never fires and the drop silently does nothing — which
+// is exactly what dropping onto a window that already had a file open looked
+// like. So mirror the drag here, and only fall back to reading the File objects
+// if Rust stays quiet. Whichever layer wins, one document opens, never two.
+var DROP_FALLBACK_MS = 400;
+var MAX_DROP_BYTES = 16 * 1024 * 1024;
+var dropFallbackTimer = null;
+var dragDepth = 0;
+
+function cancelDropFallback() {
+  clearTimeout(dropFallbackTimer);
+  dropFallbackTimer = null;
+}
+
+function showDropOverlay(visible) {
+  document.getElementById('drop-overlay').classList.toggle('visible', visible);
+}
+
+// dataTransfer.files is empty until the drop itself, so a drag in progress can
+// only be recognised by the 'Files' entry in .types.
+function dragHasFiles(e) {
+  var dt = e.dataTransfer;
+  if (!dt) return false;
+  if (dt.files && dt.files.length) return true;
+  return dt.types ? Array.prototype.indexOf.call(dt.types, 'Files') !== -1 : false;
+}
+
+function openDroppedFile(file) {
+  if (file.size > MAX_DROP_BYTES) {
+    showError('文件过大：' + file.name);
+    return;
+  }
+  var reader = new FileReader();
+  reader.onload = function() {
+    // The browser sandbox hides the real path, so the tab opens unbound to a
+    // file — Ctrl+S will ask where to put it.
+    TabManager.createTab(null, reader.result, 'preview', file.name);
+  };
+  reader.onerror = function() { showError('读取失败：' + file.name); };
+  reader.readAsText(file);
+}
+
+document.addEventListener('dragenter', function(e) {
+  if (!dragHasFiles(e)) return;
+  e.preventDefault();
+  dragDepth++;
+  showDropOverlay(true);
+});
+
+document.addEventListener('dragover', function(e) {
+  if (!dragHasFiles(e)) return;
+  e.preventDefault();   // without this Chromium refuses the drop outright
+  e.dataTransfer.dropEffect = 'copy';
+});
+
+document.addEventListener('dragleave', function(e) {
+  if (!dragHasFiles(e)) return;
+  dragDepth = Math.max(0, dragDepth - 1);
+  if (dragDepth === 0) showDropOverlay(false);
+});
+
+document.addEventListener('drop', function(e) {
+  if (!dragHasFiles(e)) return;
+  e.preventDefault();   // and without this Chromium navigates away to file://
+  dragDepth = 0;
+  showDropOverlay(false);
+  var files = Array.prototype.slice.call(e.dataTransfer.files || []);
+  if (!files.length) return;
+  cancelDropFallback();
+  dropFallbackTimer = setTimeout(function() {
+    dropFallbackTimer = null;
+    files.forEach(openDroppedFile);
+  }, DROP_FALLBACK_MS);
 });
 
 // Toolbar Buttons
