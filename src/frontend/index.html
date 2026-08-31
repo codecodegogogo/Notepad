@@ -36,7 +36,10 @@
         <svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M768 85.333333a85.333333 85.333333 0 0 1 85.333333 85.333334v682.666666a85.333333 85.333333 0 0 1-85.333333 85.333334H256a85.333333 85.333333 0 0 1-85.333333-85.333334V170.666667a85.333333 85.333333 0 0 1 85.333333-85.333334h512z m-298.666667 341.333334H341.333333a42.666667 42.666667 0 0 0 0 85.333333h128a42.666667 42.666667 0 0 0 0-85.333333z m213.333334-170.666667H341.333333a42.666667 42.666667 0 1 0 0 85.333333h341.333334a42.666667 42.666667 0 0 0 0-85.333333z"/></svg>
       </button>
     </div>
-    <span id="titlebar-title">未命名</span>
+    <!-- Pure spacer. The filename lives in the tab and the status bar; repeating it
+         here just competed with them. Still needed as an element so the actions and
+         the window controls stay pushed apart, and so the drag region has width. -->
+    <div id="titlebar-spacer"></div>
     <div id="window-controls">
       <button id="btn-minimize" title="最小化">
         <svg viewBox="0 0 10 10"><line x1="2" y1="5" x2="8" y2="5"/></svg>
@@ -197,6 +200,7 @@
                 <option value="utf8">UTF-8</option>
                 <option value="utf8bom">UTF-8（带 BOM）</option>
                 <option value="utf16le">UTF-16 LE</option>
+                <option value="gbk">GBK（简体中文）</option>
               </select>
             </div>
             <div class="settings-row">

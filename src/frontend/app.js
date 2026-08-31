@@ -41,7 +41,6 @@ document.addEventListener('DOMContentLoaded', function() {
     $.editorContainer = document.getElementById('editor-container');
     $.statusInfo = document.getElementById('status-info');
     $.statusFile = document.getElementById('status-file');
-    $.titlebarTitle = document.getElementById('titlebar-title');
     $.dropOverlay = document.getElementById('drop-overlay');
     $.tocPanel = document.getElementById('toc-panel');
     $.tocItems = document.getElementById('toc-list');
@@ -181,10 +180,6 @@ function toggleMode() {
     }
     if (findState.open) doFind(($.findInput || document.getElementById('find-input')).value);
   }
-}
-
-function setTitle(title) {
-  ($.titlebarTitle || document.getElementById('titlebar-title')).textContent = title;
 }
 
 // Transient status-bar line. One shared timer so a later message cannot be
@@ -404,7 +399,7 @@ function toggleTOC() {
 // Encoding shown in the status bar. A file that was opened keeps whatever Rust
 // detected in it; an untitled buffer shows the configured default, since that is
 // what it will be written as.
-var ENCODING_LABEL = { utf8: 'UTF-8', utf8bom: 'UTF-8 BOM', utf16le: 'UTF-16 LE' };
+var ENCODING_LABEL = { utf8: 'UTF-8', utf8bom: 'UTF-8 BOM', utf16le: 'UTF-16 LE', gbk: 'GBK' };
 
 function defaultEncoding() {
   try { return localStorage.getItem('peekdown-encoding') || 'utf8'; } catch (e) { return 'utf8'; }

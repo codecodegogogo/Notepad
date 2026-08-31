@@ -22,7 +22,7 @@ Binary output: `target/release/peekdown.exe`
 ## Project Layout
 - `src/main.rs` — Entry point, window + WebView setup, event loop, HTML assembly
 - `src/ipc.rs` — IPC message dispatch between Rust and JS
-- `src/file_ops.rs` — File read/write with BOM-based encoding detection, native open/save dialogs (rfd)
+- `src/file_ops.rs` — File read/write with BOM + GBK encoding detection, native open/save dialogs (rfd)
 - `src/fonts.rs` — System font-family enumeration via hand-declared GDI `EnumFontFamiliesExW`
 - `src/state.rs` — App state: pending file/stdin payloads, assembled HTML, live non-maximized window geometry (JS owns all tab state)
 - `src/window_state.rs` — Window geometry + maximized-state persistence (config dir: `peekdown/`)
@@ -80,12 +80,19 @@ Binary output: `target/release/peekdown.exe`
   `body[data-toolbar-display]` attribute (`icon` / `text` / `both`) — CSS does the switching, no
   DOM rebuild. Hiding a button is `style.display`, and `applyToolbar()` then hides any
   `.titlebar-sep` that no longer has a visible button on both sides
-- Encoding is detected from the BOM only (`file_ops::read_file` returns `(String, &'static str)`
-  tagged `utf8` / `utf8bom` / `utf16le`). Guessing a legacy code page from byte statistics silently
-  mangles files, and a BOM-less non-UTF-8 file already gets an honest error. UTF-16 BE opens
-  (byte-swapped) but reports as LE, since LE is all the writer emits. JS parks the tag on the tab,
-  so Ctrl+S rewrites a file in the encoding it arrived in; only a fresh buffer takes the
-  configured default
+- Encoding: BOMs are detected outright, then a BOM-less file that fails UTF-8 validation is
+  *decoded* as GBK through Win32 `MultiByteToWideChar` (CP 936) — not guessed at from byte
+  statistics. `MB_ERR_INVALID_CHARS` makes that decode all-or-nothing, so it can only ever succeed
+  on a real GBK file or fall through to an honest error; valid UTF-8 never reaches it. Writing GBK
+  goes back through `WideCharToMultiByte`, and a non-zero `lpUsedDefaultChar` aborts the save
+  rather than replacing an emoji with `?` in a file that is about to be overwritten. The OS tables
+  are used instead of `encoding_rs` because that crate carries every legacy code page for the one
+  we need. `file_ops::read_file` returns `(String, &'static str)` tagged
+  `utf8` / `utf8bom` / `utf16le` / `gbk`. UTF-16 BE opens (byte-swapped) but reports as LE, since
+  LE is all the writer emits. JS parks the tag on the tab, so Ctrl+S rewrites a file in the
+  encoding it arrived in; only a fresh buffer takes the configured default
+- The titlebar shows no filename — it is a bare drag spacer (`#titlebar-spacer`). The name lives in
+  the tab, the status bar and the OS window title (`set_title`, for taskbar / Alt+Tab)
 - `__VERSION__` in index.html is replaced with `CARGO_PKG_VERSION` at compile time
 
 ## Features
@@ -96,7 +103,8 @@ Binary output: `target/release/peekdown.exe`
 - Configurable font family + size for all three slots (UI chrome, editor, reading), choosing from
   every font installed on the system — one 字体 card holding all three
 - Customisable titlebar: pick which buttons show, and whether they show icon / text / both
-- Default character encoding + default file format for new files (设置 → 文本格式 → 保存格式)
+- Default character encoding (UTF-8 / UTF-8 BOM / UTF-16 LE / GBK) + default file format for new
+  files (设置 → 文本格式 → 保存格式); GBK files also open without a BOM
 - 另存为 button in the titlebar (Ctrl+Shift+S)
 - Status bar right cluster: word count, live zoom percentage, current file encoding
 - Multi-tab with auto-hiding tab bar (single tab = no bar) and a trailing `+` button

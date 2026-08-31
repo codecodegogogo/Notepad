@@ -54,10 +54,11 @@ fn open_and_send(webview: &WebView, path: &str) {
             }));
         }
         Err(e) => {
-            // A file with no BOM that is not valid UTF-8 surfaces as InvalidData,
-            // whose default message is opaque English about a stream.
+            // A file that is neither BOM-marked, nor valid UTF-8, nor valid GBK
+            // surfaces as InvalidData, whose default message is opaque English
+            // about a stream.
             let message = if e.kind() == std::io::ErrorKind::InvalidData {
-                "无法打开：这不是 UTF-8 文本文件".to_string()
+                "无法打开：不是 UTF-8 或 GBK 文本文件".to_string()
             } else {
                 format!("打开文件失败：{e}")
             };

@@ -176,10 +176,10 @@ var TabManager = (function() {
   function updateWindowTitle() {
     var tab = getActiveTab();
     if (!tab) return;
+    // Taskbar / Alt+Tab only. The titlebar itself no longer shows the filename.
     var title = 'Peekdown - ' + tab.filename;
     if (tab.dirty) title += ' *';
     sendToRust('set_title', { title: title });
-    setTitle(tab.filename + (tab.dirty ? ' *' : ''));
   }
 
   function renderTabBar() {

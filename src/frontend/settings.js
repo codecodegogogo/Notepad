@@ -35,7 +35,7 @@ var Settings = (function() {
     try { localStorage.setItem('peekdown-' + key, value); } catch (e) {}
   }
 
-  var ENCODING_LABEL_S = { utf8: 'UTF-8', utf8bom: 'UTF-8 BOM', utf16le: 'UTF-16 LE' };
+  var ENCODING_LABEL_S = { utf8: 'UTF-8', utf8bom: 'UTF-8 BOM', utf16le: 'UTF-16 LE', gbk: 'GBK' };
   var FORMAT_LABEL = { md: '.md', markdown: '.markdown', txt: '.txt' };
   var DISPLAY_LABEL = { icon: '仅图标', text: '仅文字', both: '图标和文字' };
 
