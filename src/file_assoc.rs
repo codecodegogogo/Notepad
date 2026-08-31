@@ -108,8 +108,8 @@ pub fn register() {
     let Some(cmd) = quoted_exe() else { return };
     unsafe {
         // 1. Declare the ProgId and its open command.
-        //    HKCU\Software\Classes\notepad.FileType\shell\open\command
-        let prog_id = "notepad.FileType";
+        //    HKCU\Software\Classes\notepads.FileType\shell\open\command
+        let prog_id = "notepads.FileType";
         if let Some(hk) = open_key(&format!("Software\\Classes\\{prog_id}")) {
             set_sz(hk, "", "Text document");
             RegCloseKey(hk);
@@ -143,7 +143,7 @@ pub fn unregister() {
             let key = wide(&format!("Software\\Classes\\.{ext}"));
             RegDeleteTreeW(HKEY_CURRENT_USER, key.as_ptr());
         }
-        let prog = wide("Software\\Classes\\notepad.FileType");
+        let prog = wide("Software\\Classes\\notepads.FileType");
         RegDeleteTreeW(HKEY_CURRENT_USER, prog.as_ptr());
         SHChangeNotify(SHCNE_ASSOCCHANGED, SHCNF_IDLIST, std::ptr::null(), std::ptr::null());
     }
