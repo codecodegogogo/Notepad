@@ -83,23 +83,6 @@ var Settings = (function() {
       var el = document.getElementById(b.id);
       if (el) el.style.display = isShown(b.id) ? '' : 'none';
     });
-    // The separators would strand themselves against a hidden neighbour, so they
-    // only show while something visible sits on each side of them.
-    var kids = Array.prototype.slice.call(
-      document.querySelectorAll('.titlebar-actions > *'));
-    kids.forEach(function(el, i) {
-      if (!el.classList.contains('titlebar-sep')) return;
-      var before = false, after = false;
-      for (var j = i - 1; j >= 0; j--) {
-        if (kids[j].classList.contains('titlebar-sep')) break;
-        if (kids[j].style.display !== 'none') { before = true; break; }
-      }
-      for (var k = i + 1; k < kids.length; k++) {
-        if (kids[k].classList.contains('titlebar-sep')) break;
-        if (kids[k].style.display !== 'none') { after = true; break; }
-      }
-      el.style.display = (before && after) ? '' : 'none';
-    });
   }
 
   // ---------- theme ----------

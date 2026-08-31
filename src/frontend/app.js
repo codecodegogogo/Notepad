@@ -686,12 +686,62 @@ document.addEventListener('keydown', function(e) {
   }
 });
 
+// Confirm dialog.
+//
+// window.confirm() in WebView2 is a Chromium page dialog: it is glued to the top
+// edge of the viewport, where it lands on top of our own titlebar, and it can be
+// neither moved nor themed. It also blocks the whole event loop. This draws the
+// same question in-page instead, so the answer arrives through a callback.
+var pendingConfirm = null;
+
+function askConfirm(message, onOk) {
+  document.getElementById('confirm-text').textContent = message;
+  pendingConfirm = onOk;
+  document.getElementById('confirm-overlay').classList.add('visible');
+  document.getElementById('confirm-ok').focus();
+}
+
+function settleConfirm(accepted) {
+  if (!document.getElementById('confirm-overlay').classList.contains('visible')) return;
+  document.getElementById('confirm-overlay').classList.remove('visible');
+  var fn = pendingConfirm;
+  pendingConfirm = null;
+  if (accepted && fn) fn();
+}
+
+function confirmIsOpen() {
+  return document.getElementById('confirm-overlay').classList.contains('visible');
+}
+
+document.getElementById('confirm-ok').addEventListener('click', function() { settleConfirm(true); });
+document.getElementById('confirm-cancel').addEventListener('click', function() { settleConfirm(false); });
+// Clicking the dimmed backdrop cancels; clicking inside the card must not.
+document.getElementById('confirm-overlay').addEventListener('mousedown', function(e) {
+  if (e.target === this) settleConfirm(false);
+});
+
+// Capture phase: while the dialog is up it owns Esc and Enter outright, or the
+// find bar's Escape handler further down would answer first.
+document.addEventListener('keydown', function(e) {
+  if (!confirmIsOpen()) return;
+  if (e.key === 'Escape') {
+    e.preventDefault();
+    e.stopPropagation();
+    settleConfirm(false);
+  } else if (e.key === 'Enter') {
+    e.preventDefault();
+    e.stopPropagation();
+    settleConfirm(true);
+  }
+}, true);
+
 // Window Controls
 document.getElementById('btn-minimize').addEventListener('click', function() { sendToRust('window_minimize'); });
 document.getElementById('btn-maximize').addEventListener('click', function() { sendToRust('window_maximize'); });
 document.getElementById('btn-close').addEventListener('click', function() {
   if (TabManager.hasAnyDirty()) {
-    if (!confirm('有未保存的更改，仍要关闭吗？')) return;
+    askConfirm('有未保存的更改，仍要关闭吗？', function() { sendToRust('window_close'); });
+    return;
   }
   sendToRust('window_close');
 });

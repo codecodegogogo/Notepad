@@ -62,8 +62,20 @@ var TabManager = (function() {
     if (idx === -1) return;
     var tab = tabs[idx];
     if (tab.dirty) {
-      if (!confirm('「' + tab.filename + '」有未保存的更改，仍要关闭吗？')) return;
+      // askConfirm is asynchronous, so the removal moved into its own function
+      // rather than continuing past this branch.
+      askConfirm('「' + tab.filename + '」有未保存的更改，仍要关闭吗？',
+        function() { removeTab(id); });
+      return;
     }
+    removeTab(id);
+  }
+
+  function removeTab(id) {
+    // Re-resolved rather than closed over: the dialog is answered later, and the
+    // tab list can have shifted by then.
+    var idx = tabs.findIndex(function(t) { return t.id === id; });
+    if (idx === -1) return;
     tabs.splice(idx, 1);
     if (tabs.length === 0) {
       createTab(null, '');

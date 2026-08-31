@@ -78,8 +78,14 @@ Binary output: `target/release/peekdown.exe`
   `.btn-label` into each button, and `settings.js` reads the same array to build the visibility
   checkboxes, so the settings list cannot drift from the bar. Display mode is a
   `body[data-toolbar-display]` attribute (`icon` / `text` / `both`) — CSS does the switching, no
-  DOM rebuild. Hiding a button is `style.display`, and `applyToolbar()` then hides any
-  `.titlebar-sep` that no longer has a visible button on both sides
+  DOM rebuild. Hiding a button is `style.display`. There are no group separators: one uniform gap
+  runs between every button, so hiding one cannot strand a divider
+- `window.confirm()` is not used. WebView2 renders it as a Chromium page dialog pinned to the top
+  edge of the viewport, overlapping our own titlebar, unthemeable and unmovable. `askConfirm(msg,
+  onOk)` in app.js draws `#confirm-overlay` instead and answers through a callback — which is why
+  `TabManager.closeTab` splits into `closeTab` (asks) and `removeTab` (acts, re-resolving the index
+  because the list can shift while the dialog is up). Its Esc/Enter handler is registered in the
+  capture phase so it outranks the find bar's Escape
 - Encoding: BOMs are detected outright, then a BOM-less file that fails UTF-8 validation is
   *decoded* as GBK through Win32 `MultiByteToWideChar` (CP 936) — not guessed at from byte
   statistics. `MB_ERR_INVALID_CHARS` makes that decode all-or-nothing, so it can only ever succeed
