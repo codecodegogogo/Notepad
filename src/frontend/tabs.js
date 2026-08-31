@@ -187,7 +187,7 @@ var TabManager = (function() {
       }
     }
 
-    document.getElementById('status-file').textContent = tab.filename;
+    updateWindowTitle();
     if (typeof updateWordCount === 'function') updateWordCount();
     if (typeof updateEncodingStatus === 'function') updateEncodingStatus();
     if (typeof updateCursorStatus === 'function') updateCursorStatus();
@@ -216,10 +216,13 @@ var TabManager = (function() {
   function updateWindowTitle() {
     var tab = getActiveTab();
     if (!tab) return;
-    // Taskbar / Alt+Tab only. The titlebar itself no longer shows the filename.
-    var title = 'notepad - ' + tab.filename;
-    if (tab.dirty) title += ' *';
-    sendToRust('set_title', { title: title });
+    var name = tab.filename + (tab.dirty ? ' *' : '');
+    // Titlebar centre shows the name only with a single file; CSS hides it once
+    // the tab strip appears (.has-tabs), where the name already lives in the tab.
+    var el = document.getElementById('titlebar-filename');
+    if (el) el.textContent = name;
+    // Taskbar / Alt+Tab always carries it.
+    sendToRust('set_title', { title: 'notepad - ' + name });
   }
 
   function renderTabBar() {
@@ -313,7 +316,6 @@ var TabManager = (function() {
       tab.filename = path ? path.split(/[/\\]/).pop() : '未命名';
       renderTabBar();
       updateWindowTitle();
-      document.getElementById('status-file').textContent = tab.filename;
     }
   }
 

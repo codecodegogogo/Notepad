@@ -212,13 +212,30 @@ body[data-toolbar-display="both"] .btn-label { display: inline; }
 }
 
 /* --- Drag region (center) ---
-   Empty on purpose: the filename is already in the tab and the status bar. This
-   only has to take up the slack between the two button groups and stay draggable,
-   which it inherits from #titlebar. */
+   Takes up the slack between the two button groups, stays draggable (inherited
+   from #titlebar), and centres the filename. The name shows only for a single
+   document — once the tab strip is up the name lives in the tab instead, so
+   .has-tabs blanks it below. */
 #titlebar-spacer {
   flex: 1;
   min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  padding: 0 8px;
 }
+
+#titlebar-filename {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: calc(12px * var(--ui-scale));
+  color: var(--text-secondary);
+}
+
+/* Tab strip showing → the tab carries the name; keep the titlebar clean. */
+.has-tabs #titlebar-filename { display: none; }
 
 /* --- Window chrome (right) --- */
 #window-controls {

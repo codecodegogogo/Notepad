@@ -68,7 +68,6 @@ document.addEventListener('DOMContentLoaded', function() {
     $.previewContainer = document.getElementById('preview-container');
     $.editorContainer = document.getElementById('editor-container');
     $.statusInfo = document.getElementById('status-info');
-    $.statusFile = document.getElementById('status-file');
     $.dropOverlay = document.getElementById('drop-overlay');
     $.tocPanel = document.getElementById('toc-panel');
     $.tocItems = document.getElementById('toc-list');
