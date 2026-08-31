@@ -131,13 +131,15 @@ Binary output: `target/release/notepad.exe`
 - Default character encoding (UTF-8 / UTF-8 BOM / UTF-16 LE / GBK) + default file format for new
   files (设置 → 文本格式 → 保存格式); GBK files also open without a BOM
 - 另存为 button in the titlebar (Ctrl+Shift+S)
-- Status bar right cluster: word count, live zoom percentage, current file encoding
+- App icon at the titlebar's far left (brand mark, part of the drag region — not a button)
+- Status bar right cluster: caret line/column, word count, live zoom percentage, current file encoding
 - Multi-tab with auto-hiding tab bar (single tab = no bar) and a trailing `+` button
 - Window position, size and maximized state are restored on next launch
 - Maximize button swaps to a restore glyph while maximized
 - Split view (Ctrl+\) with live preview
 - Syntax highlighting for code blocks
-- Find bar (Ctrl+F) with match highlighting
+- Find bar (Ctrl+F) with match highlighting; Ctrl+H grows a replace row (替换 / 全部替换, edit mode only)
+- 个性化 settings group: default open mode (阅读 / 编辑) for opened files, and auto-save interval (off / 15s–5min; only dirty file-backed tabs, never untitled buffers)
 - Table of Contents sidebar (Ctrl+Shift+O)
 - Zoom (Ctrl+/-, Ctrl+scroll) with toast indicator
 - Draggable preview width
@@ -149,14 +151,17 @@ Binary output: `target/release/notepad.exe`
 ## Conventions
 - Keep the binary small: use `opt-level = "s"`, `lto = "fat"`, `panic = "abort"`, `strip = "none"` (never strip symbols — needed for crash diagnostics)
 - No external runtime dependencies — everything embedded in the .exe
-- Dark theme is Catppuccin-Mocha-inspired; light theme is Windows 11 Notepad's Fluent palette
-  (`#ffffff` page, `#f3f3f3` chrome, `#e5e5e5` dividers, `#005fb8` accent). The two stack their
-  surfaces in **opposite directions** — dark lifts a card above the page, light drops the page
-  below a white card — so settings surfaces use `--bg-card` / `--bg-sunken` rather than reusing
-  `--bg-base` / `--bg-surface`
+- Dark theme is Catppuccin-Mocha-inspired but with a blue accent (`#60cdff`); light theme is
+  Windows 11 Notepad's Fluent palette (`#ffffff` page, `#f3f3f3` chrome, `#e5e5e5` dividers,
+  `#005fb8` accent). The two stack their surfaces in **opposite directions** — dark lifts a card
+  above the page, light drops the page below a white card — so settings surfaces use
+  `--bg-card` / `--bg-sunken` rather than reusing `--bg-base` / `--bg-surface`
+- Selection and find-match highlights use their own `--selection` / `--find-match` alphas, not
+  `--accent-glow` — that one is a button's active-state tint (~14% alpha) and left a selected
+  word barely visible when reused for highlighting
 - JS uses IIFE pattern for modules (TabManager, Settings)
-- localStorage keys prefixed with `peekdown-` (theme, multitab, recent, preview-width,
-  font-ui/editor/reading, size-ui/editor/reading, encoding, format, toolbar-display,
+- localStorage keys prefixed with `peekdown-` (theme, multitab, open-mode, autosave, recent,
+  preview-width, font-ui/editor/reading, size-ui/editor/reading, encoding, format, toolbar-display,
   toolbar-shown). `toolbar-shown` is a JSON map and is read as "absent means visible", so a
   button added in a later version does not vanish for existing users. The prefix and the
   `peekdown.localhost` custom-protocol host deliberately kept their old names through the rename to

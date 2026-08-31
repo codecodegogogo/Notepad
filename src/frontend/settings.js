@@ -38,10 +38,16 @@ var Settings = (function() {
   var ENCODING_LABEL_S = { utf8: 'UTF-8', utf8bom: 'UTF-8 BOM', utf16le: 'UTF-16 LE', gbk: 'GBK' };
   var FORMAT_LABEL = { md: '.md', markdown: '.markdown', txt: '.txt' };
   var DISPLAY_LABEL = { icon: '仅图标', text: '仅文字', both: '图标和文字' };
+  var OPENMODE_LABEL = { preview: '阅读', edit: '编辑' };
+  // Seconds → label. 0 means off. Any stored value not in this map falls back to
+  // off, so a stale number can never leave a runaway timer armed.
+  var AUTOSAVE_LABEL = { '0': '关闭', '15': '15 秒', '30': '30 秒', '60': '1 分钟', '120': '2 分钟', '300': '5 分钟' };
 
   var prefs = {
     theme: read('theme', 'system'),
     multitab: read('multitab', 'true') !== 'false',
+    openMode: read('open-mode', 'preview'),
+    autosave: read('autosave', '0'),
     encoding: read('encoding', 'utf8'),
     format: read('format', 'md'),
     toolbarDisplay: read('toolbar-display', 'icon'),
@@ -63,6 +69,8 @@ var Settings = (function() {
   };
 
   if (!THEME_LABEL[prefs.theme]) prefs.theme = 'system';
+  if (!OPENMODE_LABEL[prefs.openMode]) prefs.openMode = 'preview';
+  if (!AUTOSAVE_LABEL[prefs.autosave]) prefs.autosave = '0';
   if (!ENCODING_LABEL_S[prefs.encoding]) prefs.encoding = 'utf8';
   if (!FORMAT_LABEL[prefs.format]) prefs.format = 'md';
   if (!DISPLAY_LABEL[prefs.toolbarDisplay]) prefs.toolbarDisplay = 'icon';
@@ -175,6 +183,8 @@ var Settings = (function() {
   function refreshLabels() {
     document.getElementById('theme-value').textContent = THEME_LABEL[prefs.theme];
     document.getElementById('multitab-value').textContent = prefs.multitab ? '开启' : '关闭';
+    document.getElementById('openmode-value').textContent = OPENMODE_LABEL[prefs.openMode];
+    document.getElementById('autosave-value').textContent = AUTOSAVE_LABEL[prefs.autosave];
     document.getElementById('encoding-value').textContent =
       ENCODING_LABEL_S[prefs.encoding] + ' · ' + FORMAT_LABEL[prefs.format];
     var shownCount = buttonList().filter(function(b) { return isShown(b.id); }).length;
@@ -365,6 +375,49 @@ var Settings = (function() {
     });
   }
 
+  // Default open mode (reading vs editing) and auto-save interval.
+  //
+  // openMode is read back by app.js when a file arrives; auto-save arms a single
+  // repeating timer that only fires for tabs already bound to a file — an untitled
+  // buffer has nowhere to write, and silently popping a save dialog on a timer is
+  // worse than doing nothing.
+  var autosaveTimer = null;
+
+  function armAutosave() {
+    clearInterval(autosaveTimer);
+    var secs = parseInt(prefs.autosave, 10);
+    if (!secs) return;
+    autosaveTimer = setInterval(function() {
+      if (typeof TabManager === 'undefined' || typeof doSave !== 'function') return;
+      var tab = TabManager.getActiveTab();
+      // Only a dirty, file-backed tab: no path means Ctrl+S would open a dialog,
+      // and a clean tab has nothing to write.
+      if (tab && tab.path && tab.dirty) doSave();
+    }, secs * 1000);
+  }
+
+  function bindPersonalize() {
+    var openRadios = panel.querySelectorAll('input[name="pd-openmode"]');
+    Array.prototype.forEach.call(openRadios, function(radio) {
+      radio.checked = radio.value === prefs.openMode;
+      radio.addEventListener('change', function() {
+        if (!radio.checked) return;
+        prefs.openMode = radio.value;
+        write('open-mode', radio.value);
+        refreshLabels();
+      });
+    });
+
+    var save = document.getElementById('autosave-select');
+    save.value = prefs.autosave;
+    save.addEventListener('change', function() {
+      prefs.autosave = save.value;
+      write('autosave', save.value);
+      armAutosave();
+      refreshLabels();
+    });
+  }
+
   function bindCards() {
     var cards = panel.querySelectorAll('.settings-card:not(.static)');
     Array.prototype.forEach.call(cards, function(card) {
@@ -401,11 +454,13 @@ var Settings = (function() {
   buildSelects();
   bindTheme();
   bindMultitab();
+  bindPersonalize();
   bindToolbar();
   bindEncoding();
   bindCards();
   refreshLabels();
   pushMultitab();
+  armAutosave();
 
   gear.addEventListener('click', toggle);
   document.getElementById('settings-back').addEventListener('click', close);
@@ -420,5 +475,10 @@ var Settings = (function() {
     }
   });
 
-  return { open: open, close: close, toggle: toggle, isOpen: function() { return isOpen; } };
+  return {
+    open: open, close: close, toggle: toggle,
+    isOpen: function() { return isOpen; },
+    // Read by app.js when a file arrives, to decide preview vs edit.
+    openMode: function() { return prefs.openMode; }
+  };
 })();

@@ -8,6 +8,7 @@
     // Not debounced: the recent-files list sits over the empty page, and waiting
     // 300ms to drop it means the first characters you type appear underneath it.
     if (typeof showRecentPanel === 'function') showRecentPanel();
+    if (typeof updateCursorStatus === 'function') updateCursorStatus();
     clearTimeout(changeTimer);
     changeTimer = setTimeout(function() {
       TabManager.markDirty();
@@ -17,6 +18,14 @@
     if (typeof splitMode !== 'undefined' && splitMode) {
       updateSplitPreview();
     }
+  });
+
+  // The caret can move without any text change — arrow keys, a click, a drag
+  // selection — so its readout is refreshed on those too, not just on input.
+  ['keyup', 'click', 'select', 'focus'].forEach(function(evt) {
+    editor.addEventListener(evt, function() {
+      if (typeof updateCursorStatus === 'function') updateCursorStatus();
+    });
   });
 
   // Tab key inserts spaces (but not Ctrl+Tab which switches tabs)

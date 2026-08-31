@@ -7,6 +7,16 @@ var TabManager = (function() {
     return p.replace(/\\/g, '/');
   }
 
+  // The mode a file-backed tab opens in. Settings lets the user default this to
+  // reading or editing; a caller that passes forceMode (stdin, drop) still wins.
+  function openModeFor(path) {
+    if (!path) return 'edit';
+    try {
+      if (typeof Settings !== 'undefined' && Settings.openMode) return Settings.openMode();
+    } catch (e) {}
+    return 'preview';
+  }
+
   function createTab(path, content, forceMode, forceFilename, encoding) {
     if (path) {
       var existing = findTabByPath(path);
@@ -28,7 +38,7 @@ var TabManager = (function() {
       active.filename = path.split(/[/\\]/).pop();
       active.content = content != null ? content : '';
       active.dirty = false;
-      active.mode = 'preview';
+      active.mode = forceMode || openModeFor(path);
       active.encoding = encoding || null;
       restoreTabState(active);
       renderTabBar();
@@ -60,7 +70,7 @@ var TabManager = (function() {
       filename: forceFilename || (path ? path.split(/[/\\]/).pop() : '未命名'),
       content: content != null ? content : '',
       dirty: false,
-      mode: forceMode || (path ? 'preview' : 'edit'),
+      mode: forceMode || (path ? openModeFor(path) : 'edit'),
       // null means "no file behind this yet" — the status bar falls back to the
       // configured default rather than claiming the buffer already has an encoding.
       encoding: encoding || null,
@@ -180,6 +190,7 @@ var TabManager = (function() {
     document.getElementById('status-file').textContent = tab.filename;
     if (typeof updateWordCount === 'function') updateWordCount();
     if (typeof updateEncodingStatus === 'function') updateEncodingStatus();
+    if (typeof updateCursorStatus === 'function') updateCursorStatus();
     if (typeof showRecentPanel === 'function') showRecentPanel();
     if (typeof tocOpen !== 'undefined' && tocOpen && typeof updateTOC === 'function') updateTOC();
   }

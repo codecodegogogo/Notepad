@@ -180,6 +180,7 @@ function toggleMode() {
     iconPreview.style.display = 'none';
     iconEdit.style.display = '';
     currentMode = 'preview';
+    updateCursorStatus();
     var pc = $.previewContainer || document.getElementById('preview-container');
     setTimeout(function() {
       if (!selectedText || !selectInPreview(selectedText, scrollRatio)) {
@@ -206,6 +207,7 @@ function toggleMode() {
       editor.selectionStart = editor.selectionEnd = pos;
       editor.scrollTop = scrollRatio * (editor.scrollHeight - editor.clientHeight);
     }
+    updateCursorStatus();
     if (findState.open) doFind(($.findInput || document.getElementById('find-input')).value);
   }
 }
@@ -250,6 +252,7 @@ function toggleSplit() {
     iconPreview.style.display = '';
     iconEdit.style.display = 'none';
     ($.editor || document.getElementById('editor')).focus();
+    updateCursorStatus();
   } else {
     splitMode = true;
     document.body.classList.add('split-mode');
@@ -273,6 +276,7 @@ function toggleSplit() {
     iconPreview.style.display = '';
     iconEdit.style.display = 'none';
     document.getElementById('editor').focus();
+    updateCursorStatus();
   }
 }
 
@@ -301,6 +305,21 @@ function updateWordCount() {
   var rest = text.replace(CJK_CHAR, ' ').replace(CJK_PUNCT, ' ').trim();
   var count = (cjk ? cjk.length : 0) + (rest ? rest.split(/\s+/).length : 0);
   document.getElementById('status-counts').textContent = count + ' 字';
+}
+
+// Caret line/column, 1-based. Only meaningful in edit mode — the preview has no
+// caret — so the status item is blanked out rather than left showing a stale
+// position while reading.
+function updateCursorStatus() {
+  var el = document.getElementById('status-cursor');
+  if (!el) return;
+  if (currentMode === 'preview') { el.textContent = ''; return; }
+  var editor = $.editor || document.getElementById('editor');
+  var upto = editor.value.substring(0, editor.selectionStart);
+  var nl = upto.lastIndexOf('\n');
+  var line = upto.split('\n').length;
+  var col = editor.selectionStart - (nl + 1) + 1;
+  el.textContent = '行 ' + line + '，列 ' + col;
 }
 
 // Recent Files
@@ -540,7 +559,11 @@ document.addEventListener('wheel', function(e) {
 var findState = { open: false, matches: [], current: -1, marks: [] };
 
 function openFind() {
-  document.getElementById('find-bar').classList.add('open');
+  var bar = document.getElementById('find-bar');
+  bar.classList.add('open');
+  // Plain find is single-row. openReplace adds .replace-mode back after calling
+  // this, so a Ctrl+F that follows a Ctrl+H still collapses to just the find row.
+  if (!openFind._keepReplace) bar.classList.remove('replace-mode');
   findState.open = true;
   var input = document.getElementById('find-input');
   input.focus();
@@ -549,7 +572,9 @@ function openFind() {
 }
 
 function closeFind() {
-  document.getElementById('find-bar').classList.remove('open');
+  var bar = document.getElementById('find-bar');
+  bar.classList.remove('open');
+  bar.classList.remove('replace-mode');
   findState.open = false;
   findState.matches = [];
   findState.current = -1;
@@ -663,11 +688,91 @@ document.getElementById('find-close').addEventListener('click', closeFind);
 document.getElementById('find-next').addEventListener('click', findNext);
 document.getElementById('find-prev').addEventListener('click', findPrev);
 
+// Replace (Ctrl+H). The find bar grows a second row; replace edits the textarea,
+// so it only runs in edit mode. Matching is literal and case-insensitive, same as
+// find — no regex, because the find box has never been a regex box and quietly
+// making it one for replace would surprise.
+function openReplace() {
+  // Replace needs the editor. Toggle out of a single-pane preview first; split
+  // mode already has a live editor, so leave it be.
+  if (currentMode === 'preview' && !splitMode) toggleMode();
+  // Guard openFind's collapse-to-single-row so it keeps the replace row this time.
+  openFind._keepReplace = true;
+  document.getElementById('find-bar').classList.add('replace-mode');
+  openFind();
+  openFind._keepReplace = false;
+}
+
+function replaceOne() {
+  if (currentMode !== 'edit') { showInfo('替换仅在编辑模式可用'); return; }
+  var term = document.getElementById('find-input').value;
+  if (!term) return;
+  var repl = document.getElementById('replace-input').value;
+  var editor = $.editor || document.getElementById('editor');
+  var s = editor.selectionStart, e = editor.selectionEnd;
+  // goToMatch leaves the current hit selected. Replace it only if that is still
+  // what is selected; otherwise just move to the next hit so a stray click can't
+  // overwrite the wrong text.
+  if (editor.value.substring(s, e).toLowerCase() === term.toLowerCase() && e > s) {
+    editor.value = editor.value.substring(0, s) + repl + editor.value.substring(e);
+    editor.selectionStart = editor.selectionEnd = s + repl.length;
+    afterEditorReplace();
+    doFind(term);
+  } else {
+    findNext();
+  }
+}
+
+function replaceAll() {
+  if (currentMode !== 'edit') { showInfo('替换仅在编辑模式可用'); return; }
+  var term = document.getElementById('find-input').value;
+  if (!term) return;
+  var repl = document.getElementById('replace-input').value;
+  var editor = $.editor || document.getElementById('editor');
+  var value = editor.value, lower = value.toLowerCase(), tl = term.toLowerCase();
+  var out = '', from = 0, idx, count = 0;
+  while ((idx = lower.indexOf(tl, from)) !== -1) {
+    out += value.substring(from, idx) + repl;
+    from = idx + term.length;
+    count++;
+  }
+  if (count === 0) { showInfo('无匹配项'); return; }
+  out += value.substring(from);
+  editor.value = out;
+  editor.selectionStart = editor.selectionEnd = out.length;
+  afterEditorReplace();
+  doFind(term);
+  showInfo('已替换 ' + count + ' 处');
+}
+
+// Shared bookkeeping after a programmatic edit of the textarea: the tab is dirty,
+// its cached HTML is stale, and the counts/split preview need refreshing. An
+// `input` event would cover most of this, but dispatching one re-enters the find
+// logic mid-replace, so the work is done directly instead.
+function afterEditorReplace() {
+  var tab = TabManager.getActiveTab();
+  if (tab) tab.parsedHtml = null;
+  TabManager.markDirty();
+  updateWordCount();
+  updateCursorStatus();
+  if (splitMode) updateSplitPreview();
+}
+
+document.getElementById('replace-one').addEventListener('click', replaceOne);
+document.getElementById('replace-all').addEventListener('click', replaceAll);
+document.getElementById('replace-input').addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') { closeFind(); e.preventDefault(); }
+  else if (e.key === 'Enter') { replaceOne(); e.preventDefault(); }
+});
+
 // Keyboard Shortcuts
 document.addEventListener('keydown', function(e) {
   if (e.ctrlKey && e.key === 'f') {
     e.preventDefault();
     openFind();
+  } else if (e.ctrlKey && e.key === 'h') {
+    e.preventDefault();
+    openReplace();
   } else if (e.key === 'Escape' && findState.open) {
     e.preventDefault();
     closeFind();
@@ -906,6 +1011,7 @@ document.addEventListener('DOMContentLoaded', function() {
   TabManager.createTab(null, '');
   updateWordCount();
   updateEncodingStatus();
+  updateCursorStatus();
   showRecentPanel();
   sendToRust('ready');
 });

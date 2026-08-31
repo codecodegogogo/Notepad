@@ -15,9 +15,14 @@
   --text: #c8c8d0;
   --text-secondary: #85858f;
   --text-dim: #6a6a78;
-  --accent: #e0a47a;
-  --accent-glow: rgba(224, 164, 122, 0.14);
-  --accent-hover: #ebbf9e;
+  --accent: #60cdff;
+  --accent-glow: rgba(96, 205, 255, 0.16);
+  --accent-hover: #8ad9ff;
+  /* Selection and find highlights are their own strength, deliberately not
+     --accent-glow: that one is a button's active-state tint, and at the alpha
+     that suits a 30px button a selected word is barely tinted at all. */
+  --selection: rgba(96, 205, 255, 0.32);
+  --find-match: rgba(96, 205, 255, 0.30);
   --link: #7aafcf;
   --border: #252529;
   --border-subtle: #1e1e22;
@@ -62,6 +67,10 @@
   --accent: #005fb8;
   --accent-glow: rgba(0, 95, 184, 0.10);
   --accent-hover: #1a6fc4;
+  /* Same role as in the dark theme: a selection/find strength well above the
+     button-tint alpha of --accent-glow, tuned for the lighter ground. */
+  --selection: rgba(0, 95, 184, 0.22);
+  --find-match: rgba(0, 95, 184, 0.22);
   --link: #0067c0;
   --border: #e5e5e5;
   --border-subtle: #f0f0f0;
@@ -98,6 +107,24 @@ html, body {
    the two should read as one continuous block of chrome — the only boundary
    that matters is the one against the white page below. */
 .has-tabs #titlebar { border-bottom-color: transparent; }
+
+/* --- Brand mark (leftmost) --- */
+#app-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding-left: calc(8px * var(--ui-scale));
+  padding-right: calc(2px * var(--ui-scale));
+  flex-shrink: 0;
+  /* Stays inside the drag region: it is decoration, not a control. */
+}
+
+#app-icon svg {
+  width: calc(17px * var(--ui-scale));
+  height: calc(17px * var(--ui-scale));
+  display: block;
+}
 
 /* --- Action buttons (left) --- */
 .titlebar-actions {
@@ -375,7 +402,7 @@ body[data-toolbar-display="both"] .btn-label { display: inline; }
 }
 
 #editor::selection {
-  background: var(--accent-glow);
+  background: var(--selection);
 }
 
 /* ============================================
@@ -1101,7 +1128,8 @@ body.preview-resizing #preview { user-select: none; }
   position: fixed;
   top: calc(var(--h-titlebar) + 6px);
   right: 12px;
-  align-items: center;
+  /* Column now: a find row, and a replace row that Ctrl+H reveals below it. */
+  flex-direction: column;
   gap: 4px;
   background: var(--bg-overlay);
   border: 1px solid var(--border);
@@ -1114,6 +1142,17 @@ body.preview-resizing #preview { user-select: none; }
 .has-tabs #find-bar { top: calc(var(--h-titlebar) + var(--h-tabbar) + 6px); }
 
 #find-bar.open { display: flex; }
+
+.find-row, .replace-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* The replace row is present only in replace mode. Plain find (Ctrl+F) leaves the
+   bar its original single-row size. */
+.replace-row { display: none; }
+#find-bar.replace-mode .replace-row { display: flex; }
 
 #find-input {
   width: 180px;
@@ -1129,6 +1168,31 @@ body.preview-resizing #preview { user-select: none; }
 }
 
 #find-input:focus { border-color: var(--accent); }
+
+/* Same field as find, so the two rows line up in width. */
+#replace-input {
+  width: 180px;
+  height: 24px;
+  background: var(--bg-base);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0 8px;
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: calc(12px * var(--ui-scale));
+  outline: none;
+}
+
+#replace-input:focus { border-color: var(--accent); }
+
+/* Text buttons (替换 / 全部) opt out of the 24px icon-button box below. */
+#find-bar button.find-text-btn {
+  width: auto;
+  padding: 0 10px;
+  font-family: var(--font-body);
+  font-size: calc(11.5px * var(--ui-scale));
+  color: var(--text-secondary);
+}
 
 #find-count {
   font-size: calc(10.5px * var(--ui-scale));
@@ -1165,9 +1229,10 @@ body.preview-resizing #preview { user-select: none; }
   stroke-linecap: round;
 }
 
-/* Find match highlights in preview */
+/* Find match highlights in preview. --find-match is defined per theme, so both
+   share one rule; the active hit fills solid accent and flips its text light. */
 mark.find-match {
-  background: rgba(224, 164, 122, 0.25);
+  background: var(--find-match);
   color: inherit;
   border-radius: 2px;
 }
@@ -1175,10 +1240,6 @@ mark.find-match {
 mark.find-match.find-active {
   background: var(--accent);
   color: var(--bg-base);
-}
-
-[data-theme="light"] mark.find-match {
-  background: rgba(0, 95, 184, 0.16);
 }
 
 [data-theme="light"] mark.find-match.find-active {
