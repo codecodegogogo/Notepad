@@ -31,10 +31,7 @@ const MIN_W: u32 = 420;
 const MIN_H: u32 = 320;
 
 fn config_path() -> PathBuf {
-    let mut p = dirs::config_dir().unwrap_or_else(|| PathBuf::from("."));
-    p.push("peekdown");
-    p.push("window_state.json");
-    p
+    crate::app_config::config_dir().join("window_state.json")
 }
 
 pub fn load_window_state() -> WindowState {

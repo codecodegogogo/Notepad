@@ -42,7 +42,7 @@ jobs:
       - name: Verify binary and embedded icon
         shell: pwsh
         run: |
-          $exe = 'target/release/peekdown.exe'
+          $exe = 'target/release/notepad.exe'
           if (-not (Test-Path $exe)) { throw "build produced no $exe" }
           "size: {0:N0} KB" -f ((Get-Item $exe).Length / 1KB)
           Add-Type -AssemblyName System.Drawing
@@ -53,8 +53,8 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: peekdown-exe
-          path: target/release/peekdown.exe
+          name: notepad-exe
+          path: target/release/notepad.exe
           if-no-files-found: error
 
   release:
@@ -66,9 +66,9 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
-          name: peekdown-exe
+          name: notepad-exe
 
       - uses: softprops/action-gh-release@v2
         with:
-          files: peekdown.exe
+          files: notepad.exe
           generate_release_notes: true

@@ -13,9 +13,11 @@ use windows::Win32::Foundation::{HWND, RECT};
 use windows::Win32::UI::WindowsAndMessaging::{SetWindowPos, SWP_ASYNCWINDOWPOS, SWP_NOACTIVATE, SWP_NOZORDER};
 use wry::{WebViewBuilder, WebViewBuilderExtWindows, WebViewExtWindows};
 
+mod app_config;
 mod file_ops;
 mod fonts;
 mod ipc;
+mod single_instance;
 mod state;
 mod window_state;
 
@@ -32,6 +34,9 @@ const HLJS: &str = include_str!("frontend/highlight.min.js");
 #[derive(Debug)]
 enum UserEvent {
     IpcMessage(String),
+    /// A second process handed us its command line. The payload is a file path,
+    /// or empty when it was launched with no file and only wants us in front.
+    HandOff(String),
 }
 
 fn main() {
@@ -88,8 +93,29 @@ fn main() {
         }
     }
 
+    // Single-instance gate. Only while 多标签 is on: with it off, every launch is
+    // meant to be its own window, which is what a plain second process already
+    // gives us. Checked before the event loop so a handoff costs no UI at all.
+    let multitab = app_config::multitab_enabled();
+    if multitab {
+        if let single_instance::Role::Secondary = single_instance::claim() {
+            if single_instance::hand_off(cli_file.as_deref()) {
+                return;
+            }
+            // Nobody was listening after all — fall through and open normally
+            // rather than exiting and looking like the double-click did nothing.
+        }
+    }
+
     let event_loop = EventLoopBuilder::<UserEvent>::with_user_event().build();
     let proxy: EventLoopProxy<UserEvent> = event_loop.create_proxy();
+
+    if multitab {
+        let proxy_handoff = proxy.clone();
+        single_instance::listen(move |payload| {
+            let _ = proxy_handoff.send_event(UserEvent::HandOff(payload));
+        });
+    }
 
     // Monitors are only enumerable once the event loop exists, and the saved
     // rectangle has to be checked against them before the window is built.
@@ -109,7 +135,7 @@ fn main() {
     }
 
     let window = WindowBuilder::new()
-        .with_title("Peekdown - 未命名")
+        .with_title("notepad - 未命名")
         .with_decorations(false)
         .with_inner_size(PhysicalSize::new(saved.width, saved.height))
         .with_position(PhysicalPosition::new(saved.x, saved.y))
@@ -267,6 +293,21 @@ fn main() {
         match event {
             Event::UserEvent(UserEvent::IpcMessage(msg)) => {
                 ipc::handle_ipc_message(&msg, &_webview, &window, &app_state);
+            }
+            Event::UserEvent(UserEvent::HandOff(payload)) => {
+                // Whatever else happens, the window the user just double-clicked
+                // towards has to come forward — it may be minimized or buried.
+                window.set_minimized(false);
+                window.set_visible(true);
+                window.set_focus();
+                if !payload.is_empty() {
+                    let msg = serde_json::json!({
+                        "command": "open_file",
+                        "path": payload
+                    })
+                    .to_string();
+                    ipc::handle_ipc_message(&msg, &_webview, &window, &app_state);
+                }
             }
             Event::WindowEvent {
                 event: WindowEvent::Resized(new_size),

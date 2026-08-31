@@ -52,6 +52,14 @@ window.__bootDone = function() {
   setTimeout(reveal, 150);
 };
 
+// Multi-tab switch. Read here rather than from Settings so tabs.js can consult it
+// without depending on a module that loads after it. Rust keeps its own copy on
+// disk (set_multitab), because a second launch must decide whether to hand its
+// file over before there is a WebView to ask.
+function multiTabEnabled() {
+  try { return localStorage.getItem('peekdown-multitab') !== 'false'; } catch (e) { return true; }
+}
+
 // Cached DOM refs
 var $ = {};
 document.addEventListener('DOMContentLoaded', function() {

@@ -114,6 +114,24 @@
           </div>
         </div>
 
+        <div class="settings-card" data-card="tabs">
+          <button class="settings-card-head">
+            <span class="settings-card-icon">
+              <svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M128 341.333333h298.666667a64 64 0 0 0 64-64V213.333333a64 64 0 0 1 64-64h192a64 64 0 0 1 64 64v64a64 64 0 0 0 64 64H128z"/><path fill-rule="evenodd" d="M85.333333 405.333333h853.333334v405.333334a85.333333 85.333333 0 0 1-85.333334 85.333333H170.666667a85.333333 85.333333 0 0 1-85.333334-85.333333V405.333333z"/></svg>
+            </span>
+            <span class="settings-card-text">
+              <span class="settings-card-title">启用多标签</span>
+              <span class="settings-card-desc">关闭后，每个文档单独开一个窗口</span>
+            </span>
+            <span class="settings-card-value" id="multitab-value"></span>
+            <span class="settings-card-chevron"><svg viewBox="0 0 10 10"><polyline points="2,3.5 5,6.5 8,3.5"/></svg></span>
+          </button>
+          <div class="settings-card-body">
+            <label class="settings-radio"><input type="radio" name="pd-multitab" value="on"><span>开启 · 从桌面打开的文件进入新标签</span></label>
+            <label class="settings-radio"><input type="radio" name="pd-multitab" value="off"><span>关闭 · 从桌面打开的文件进入新窗口</span></label>
+          </div>
+        </div>
+
         <div class="settings-card" data-card="toolbar">
           <button class="settings-card-head">
             <span class="settings-card-icon">
@@ -221,7 +239,7 @@
               <svg viewBox="0 0 1024 1024" fill="currentColor"><path fill-rule="evenodd" d="M512 85.333333a426.666667 426.666667 0 1 1 0 853.333334 426.666667 426.666667 0 0 1 0-853.333334z m0 341.333334a42.666667 42.666667 0 0 0-42.666667 42.666666v213.333334a42.666667 42.666667 0 0 0 85.333334 0V469.333333a42.666667 42.666667 0 0 0-42.666667-42.666666z m0-149.333334a53.333333 53.333333 0 1 0 0 106.666667 53.333333 53.333333 0 0 0 0-106.666667z"/></svg>
             </span>
             <span class="settings-card-text">
-              <span class="settings-card-title">Peekdown</span>
+              <span class="settings-card-title">notepad</span>
               <span class="settings-card-desc">轻量 Markdown 阅读与编辑器</span>
             </span>
             <span class="settings-card-value" id="about-version">__VERSION__</span>

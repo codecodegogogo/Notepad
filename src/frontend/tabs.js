@@ -36,6 +36,23 @@ var TabManager = (function() {
       return active;
     }
 
+    // Single-document mode: anything that would have become a second tab becomes
+    // a second window instead. Reached only once a document is already open —
+    // the reuse branch above still absorbs a file into an untouched empty buffer,
+    // so a fresh launch does not immediately spawn a window at itself.
+    if (active && typeof multiTabEnabled === 'function' && !multiTabEnabled()) {
+      if (path) {
+        sendToRust('new_window', { path: path });
+        return null;
+      }
+      if (content == null || content === '') {
+        sendToRust('new_window');
+        return null;
+      }
+      // A dropped or piped buffer has no path to hand to a new process, so it
+      // stays here rather than being thrown away.
+    }
+
     var id = ++tabIdCounter;
     var tab = {
       id: id,
@@ -189,14 +206,17 @@ var TabManager = (function() {
     var tab = getActiveTab();
     if (!tab) return;
     // Taskbar / Alt+Tab only. The titlebar itself no longer shows the filename.
-    var title = 'Peekdown - ' + tab.filename;
+    var title = 'notepad - ' + tab.filename;
     if (tab.dirty) title += ' *';
     sendToRust('set_title', { title: title });
   }
 
   function renderTabBar() {
     var bar = document.getElementById('tab-bar');
-    var show = tabs.length > 1;
+    // With 多标签 off there is never more than one tab, but the guard also covers
+    // the moment the setting is turned off while several are already open.
+    var multi = typeof multiTabEnabled !== 'function' || multiTabEnabled();
+    var show = tabs.length > 1 && multi;
     bar.style.display = show ? '' : 'none';
     document.body.classList.toggle('has-tabs', show);
     bar.innerHTML = '';
@@ -290,6 +310,9 @@ var TabManager = (function() {
     createTab: createTab,
     closeTab: closeTab,
     switchTab: switchTab,
+    // Settings calls this when 多标签 is toggled: the bar's visibility depends on
+    // a preference this module only reads, so it needs a way to be told.
+    refreshTabBar: renderTabBar,
     markDirty: markDirty,
     markClean: markClean,
     nextTab: nextTab,

@@ -25,6 +25,9 @@ struct IpcMessage {
     /// Default extension for the save dialog: `md` | `markdown` | `txt`.
     #[serde(default)]
     format: Option<String>,
+    /// `set_multitab` only.
+    #[serde(default)]
+    enabled: Option<bool>,
 }
 
 /// Persists the geometry the window should come back to. Reads the live-tracked
@@ -131,6 +134,27 @@ pub fn handle_ipc_message(
         "show_error" => {
             if let Some(message) = parsed.message {
                 send_to_js(webview, "error", &serde_json::json!({ "message": message }));
+            }
+        }
+        "set_multitab" => {
+            // Mirrored out of localStorage because the next launch has to read it
+            // before there is a WebView to ask.
+            crate::app_config::set_multitab(parsed.enabled.unwrap_or(true));
+        }
+        "new_window" => {
+            // Single-document mode: a second document means a second process.
+            // Only reachable with 多标签 off, so it cannot collide with the
+            // single-instance handoff.
+            if let Ok(exe) = std::env::current_exe() {
+                let mut cmd = std::process::Command::new(exe);
+                if let Some(ref p) = parsed.path {
+                    cmd.arg(p);
+                }
+                if let Err(e) = cmd.spawn() {
+                    send_to_js(webview, "error", &serde_json::json!({
+                        "message": format!("无法打开新窗口：{e}")
+                    }));
+                }
             }
         }
         "show_window" => {

@@ -41,6 +41,7 @@ var Settings = (function() {
 
   var prefs = {
     theme: read('theme', 'system'),
+    multitab: read('multitab', 'true') !== 'false',
     encoding: read('encoding', 'utf8'),
     format: read('format', 'md'),
     toolbarDisplay: read('toolbar-display', 'icon'),
@@ -65,6 +66,16 @@ var Settings = (function() {
   if (!ENCODING_LABEL_S[prefs.encoding]) prefs.encoding = 'utf8';
   if (!FORMAT_LABEL[prefs.format]) prefs.format = 'md';
   if (!DISPLAY_LABEL[prefs.toolbarDisplay]) prefs.toolbarDisplay = 'icon';
+
+  // Rust needs this one on disk: a second launch decides whether to hand its file
+  // to us and exit before there is any WebView to query. Pushed on every change
+  // and once at startup, so a config file lost or written by an older build heals
+  // itself the next time the app runs.
+  function pushMultitab() {
+    if (typeof sendToRust === 'function') {
+      sendToRust('set_multitab', { enabled: prefs.multitab });
+    }
+  }
 
   // ---------- toolbar ----------
 
@@ -163,6 +174,7 @@ var Settings = (function() {
 
   function refreshLabels() {
     document.getElementById('theme-value').textContent = THEME_LABEL[prefs.theme];
+    document.getElementById('multitab-value').textContent = prefs.multitab ? '开启' : '关闭';
     document.getElementById('encoding-value').textContent =
       ENCODING_LABEL_S[prefs.encoding] + ' · ' + FORMAT_LABEL[prefs.format];
     var shownCount = buttonList().filter(function(b) { return isShown(b.id); }).length;
@@ -336,6 +348,23 @@ var Settings = (function() {
     });
   }
 
+  function bindMultitab() {
+    var radios = panel.querySelectorAll('input[name="pd-multitab"]');
+    Array.prototype.forEach.call(radios, function(radio) {
+      radio.checked = (radio.value === 'on') === prefs.multitab;
+      radio.addEventListener('change', function() {
+        if (!radio.checked) return;
+        prefs.multitab = radio.value === 'on';
+        write('multitab', prefs.multitab ? 'true' : 'false');
+        pushMultitab();
+        // Turning it off while several tabs are open has to take the bar away
+        // straight away, or the setting looks like it did nothing.
+        if (typeof TabManager !== 'undefined') TabManager.refreshTabBar();
+        refreshLabels();
+      });
+    });
+  }
+
   function bindCards() {
     var cards = panel.querySelectorAll('.settings-card:not(.static)');
     Array.prototype.forEach.call(cards, function(card) {
@@ -371,10 +400,12 @@ var Settings = (function() {
 
   buildSelects();
   bindTheme();
+  bindMultitab();
   bindToolbar();
   bindEncoding();
   bindCards();
   refreshLabels();
+  pushMultitab();
 
   gear.addEventListener('click', toggle);
   document.getElementById('settings-back').addEventListener('click', close);

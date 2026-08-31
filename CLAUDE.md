@@ -1,4 +1,4 @@
-# Peekdown — Markdown Viewer/Editor
+# notepad — Markdown Viewer/Editor
 
 ## What is this?
 A lightweight native Windows markdown viewer/editor built with Rust + WebView2.
@@ -15,7 +15,7 @@ Goal: Notepad-fast startup, Obsidian-pretty UI. Single ~800 KB executable.
 ```bash
 cargo build --release
 ```
-Binary output: `target/release/peekdown.exe`
+Binary output: `target/release/notepad.exe`
 
 `build.rs` uses `winresource` to embed `assets/notebook.ico` into the .exe.
 
@@ -25,7 +25,9 @@ Binary output: `target/release/peekdown.exe`
 - `src/file_ops.rs` — File read/write with BOM + GBK encoding detection, native open/save dialogs (rfd)
 - `src/fonts.rs` — System font-family enumeration via hand-declared GDI `EnumFontFamiliesExW`
 - `src/state.rs` — App state: pending file/stdin payloads, assembled HTML, live non-maximized window geometry (JS owns all tab state)
-- `src/window_state.rs` — Window geometry + maximized-state persistence (config dir: `peekdown/`)
+- `src/window_state.rs` — Window geometry + maximized-state persistence (config dir: `notepad/`)
+- `src/app_config.rs` — The one setting Rust must read before the WebView exists (多标签), plus the shared config-dir helper
+- `src/single_instance.rs` — Named mutex + named event + handoff files, so a second launch can pass its path to the running window and exit
 - `build.rs` — Embeds app icon via winresource
 - `assets/notebook.ico` — App icon (48px; CI upsizes it to the smaller Windows shell sizes)
 - `src/frontend/` — All HTML/CSS/JS files (embedded at compile time via include_str!)
@@ -80,6 +82,14 @@ Binary output: `target/release/peekdown.exe`
   `body[data-toolbar-display]` attribute (`icon` / `text` / `both`) — CSS does the switching, no
   DOM rebuild. Hiding a button is `style.display`. There are no group separators: one uniform gap
   runs between every button, so hiding one cannot strand a divider
+- 多标签 (设置 → 外观 → 启用多标签) decides how a file opened from Explorer behaves. On (default):
+  a second launch finds the running process through a named mutex, drops its path in a handoff file,
+  signals a named event and exits — the running window brings itself forward and opens a tab. Off:
+  no single-instance logic at all, so every launch is its own window, the tab bar never shows, and
+  anything that would become a second tab is re-launched as a second process (`new_window`). The
+  flag has to live on disk (`app_config`) as well as in localStorage, because the handoff decision
+  happens before there is a WebView to ask. `settings.js` pushes it through `set_multitab` on every
+  change and once at startup, so a missing config file heals itself
 - The window is built with `with_visible(false)` and revealed only after the frontend has painted
   its first document. A visible window exposes the whole boot — a blank frame while WebView2
   starts, the default theme until `settings.js` (the last script) runs, the empty untitled tab
@@ -144,8 +154,11 @@ Binary output: `target/release/peekdown.exe`
   below a white card — so settings surfaces use `--bg-card` / `--bg-sunken` rather than reusing
   `--bg-base` / `--bg-surface`
 - JS uses IIFE pattern for modules (TabManager, Settings)
-- localStorage keys prefixed with `peekdown-` (theme, recent, preview-width,
+- localStorage keys prefixed with `peekdown-` (theme, multitab, recent, preview-width,
   font-ui/editor/reading, size-ui/editor/reading, encoding, format, toolbar-display,
   toolbar-shown). `toolbar-shown` is a JSON map and is read as "absent means visible", so a
-  button added in a later version does not vanish for existing users
+  button added in a later version does not vanish for existing users. The prefix and the
+  `peekdown.localhost` custom-protocol host deliberately kept their old names through the rename to
+  notepad — the host is the page's origin, so changing it would wipe every stored setting for no
+  user-visible gain
 - User-facing strings are Chinese; `eprintln!` logs and on-disk defaults (e.g. `untitled.md`) stay ASCII
