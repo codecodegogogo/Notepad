@@ -22,7 +22,7 @@ Binary output: `target/release/peekdown.exe`
 ## Project Layout
 - `src/main.rs` — Entry point, window + WebView setup, event loop, HTML assembly
 - `src/ipc.rs` — IPC message dispatch between Rust and JS
-- `src/file_ops.rs` — File read/write, native open/save dialogs (rfd)
+- `src/file_ops.rs` — File read/write with BOM-based encoding detection, native open/save dialogs (rfd)
 - `src/fonts.rs` — System font-family enumeration via hand-declared GDI `EnumFontFamiliesExW`
 - `src/state.rs` — App state: pending file/stdin payloads, assembled HTML, live non-maximized window geometry (JS owns all tab state)
 - `src/window_state.rs` — Window geometry + maximized-state persistence (config dir: `peekdown/`)
@@ -74,14 +74,31 @@ Binary output: `target/release/peekdown.exe`
   and the active tab is filled with `--bg-base` so it runs into the page. `#tab-bar` therefore
   carries no `border-bottom`, and `.has-tabs #titlebar` drops its own so the chrome reads as one
   block
+- Titlebar buttons are declared once, in `app.js`'s `TOOLBAR_BUTTONS`: the loop below it injects a
+  `.btn-label` into each button, and `settings.js` reads the same array to build the visibility
+  checkboxes, so the settings list cannot drift from the bar. Display mode is a
+  `body[data-toolbar-display]` attribute (`icon` / `text` / `both`) — CSS does the switching, no
+  DOM rebuild. Hiding a button is `style.display`, and `applyToolbar()` then hides any
+  `.titlebar-sep` that no longer has a visible button on both sides
+- Encoding is detected from the BOM only (`file_ops::read_file` returns `(String, &'static str)`
+  tagged `utf8` / `utf8bom` / `utf16le`). Guessing a legacy code page from byte statistics silently
+  mangles files, and a BOM-less non-UTF-8 file already gets an honest error. UTF-16 BE opens
+  (byte-swapped) but reports as LE, since LE is all the writer emits. JS parks the tag on the tab,
+  so Ctrl+S rewrites a file in the encoding it arrived in; only a fresh buffer takes the
+  configured default
 - `__VERSION__` in index.html is replaced with `CARGO_PKG_VERSION` at compile time
 
 ## Features
 - Chinese UI throughout (tooltips, status bar, dialogs, empty states)
-- Settings panel (Ctrl+,) in the Win11-Notepad style — accordion cards, gear button top-right
+- Settings panel (Ctrl+,) in the Win11-Notepad style — accordion cards, gear button leftmost in the
+  titlebar action group
 - Themes: Day / Night / Follow system (Win11-Notepad light / Catppuccin-Mocha dark)
 - Configurable font family + size for all three slots (UI chrome, editor, reading), choosing from
-  every font installed on the system
+  every font installed on the system — one 字体 card holding all three
+- Customisable titlebar: pick which buttons show, and whether they show icon / text / both
+- Default character encoding + default file format for new files (设置 → 文本格式 → 保存格式)
+- 另存为 button in the titlebar (Ctrl+Shift+S)
+- Status bar right cluster: word count, live zoom percentage, current file encoding
 - Multi-tab with auto-hiding tab bar (single tab = no bar) and a trailing `+` button
 - Window position, size and maximized state are restored on next launch
 - Maximize button swaps to a restore glyph while maximized
@@ -106,5 +123,7 @@ Binary output: `target/release/peekdown.exe`
   `--bg-base` / `--bg-surface`
 - JS uses IIFE pattern for modules (TabManager, Settings)
 - localStorage keys prefixed with `peekdown-` (theme, recent, preview-width,
-  font-ui/editor/reading, size-ui/editor/reading)
+  font-ui/editor/reading, size-ui/editor/reading, encoding, format, toolbar-display,
+  toolbar-shown). `toolbar-shown` is a JSON map and is read as "absent means visible", so a
+  button added in a later version does not vanish for existing users
 - User-facing strings are Chinese; `eprintln!` logs and on-disk defaults (e.g. `untitled.md`) stay ASCII

@@ -18,6 +18,13 @@ struct IpcMessage {
     title: Option<String>,
     #[serde(default)]
     message: Option<String>,
+    /// `utf8` | `utf8bom` | `utf16le`. Absent on old messages, so it falls back
+    /// to UTF-8 through `normalize_encoding`.
+    #[serde(default)]
+    encoding: Option<String>,
+    /// Default extension for the save dialog: `md` | `markdown` | `txt`.
+    #[serde(default)]
+    format: Option<String>,
 }
 
 /// Persists the geometry the window should come back to. Reads the live-tracked
@@ -37,15 +44,18 @@ fn push_maximized(webview: &WebView, window: &Window) {
 
 fn open_and_send(webview: &WebView, path: &str) {
     match file_ops::read_file(path) {
-        Ok(contents) => {
+        Ok((contents, encoding)) => {
             send_to_js(webview, "file_opened", &serde_json::json!({
                 "content": contents,
-                "path": path
+                "path": path,
+                // JS parks this on the tab so Ctrl+S writes the file back in the
+                // encoding it arrived in rather than silently converting it.
+                "encoding": encoding
             }));
         }
         Err(e) => {
-            // read_to_string reports non-UTF-8 as InvalidData, whose default
-            // message is opaque English about a stream.
+            // A file with no BOM that is not valid UTF-8 surfaces as InvalidData,
+            // whose default message is opaque English about a stream.
             let message = if e.kind() == std::io::ErrorKind::InvalidData {
                 "无法打开：这不是 UTF-8 文本文件".to_string()
             } else {
@@ -78,12 +88,14 @@ pub fn handle_ipc_message(
             }
         }
         "save_file" => {
+            let encoding = file_ops::normalize_encoding(parsed.encoding.as_deref());
             if let Some(ref content) = parsed.content {
                 if let Some(ref path) = parsed.path {
-                    match file_ops::write_file(path, content) {
+                    match file_ops::write_file(path, content, encoding) {
                         Ok(_) => {
                             send_to_js(webview, "file_saved", &serde_json::json!({
-                                "path": path
+                                "path": path,
+                                "encoding": encoding
                             }));
                         }
                         Err(e) => send_to_js(webview, "error", &serde_json::json!({
@@ -91,12 +103,13 @@ pub fn handle_ipc_message(
                         })),
                     }
                 } else {
-                    handle_save_as(webview, parsed.content);
+                    handle_save_as(webview, parsed.content, encoding, parsed.format.as_deref());
                 }
             }
         }
         "save_as" => {
-            handle_save_as(webview, parsed.content);
+            let encoding = file_ops::normalize_encoding(parsed.encoding.as_deref());
+            handle_save_as(webview, parsed.content, encoding, parsed.format.as_deref());
         }
         "set_title" => {
             if let Some(title) = parsed.title {
@@ -176,13 +189,16 @@ pub fn handle_ipc_message(
 fn handle_save_as(
     webview: &WebView,
     content: Option<String>,
+    encoding: &'static str,
+    format: Option<&str>,
 ) {
     if let Some(content) = content {
-        if let Some(path) = file_ops::pick_save_file() {
-            match file_ops::write_file(&path, &content) {
+        if let Some(path) = file_ops::pick_save_file(format.unwrap_or("md")) {
+            match file_ops::write_file(&path, &content, encoding) {
                 Ok(_) => {
                     send_to_js(webview, "file_saved", &serde_json::json!({
-                        "path": path
+                        "path": path,
+                        "encoding": encoding
                     }));
                 }
                 Err(e) => send_to_js(webview, "error", &serde_json::json!({

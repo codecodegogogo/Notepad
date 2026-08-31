@@ -35,8 +35,20 @@ var Settings = (function() {
     try { localStorage.setItem('peekdown-' + key, value); } catch (e) {}
   }
 
+  var ENCODING_LABEL_S = { utf8: 'UTF-8', utf8bom: 'UTF-8 BOM', utf16le: 'UTF-16 LE' };
+  var FORMAT_LABEL = { md: '.md', markdown: '.markdown', txt: '.txt' };
+  var DISPLAY_LABEL = { icon: '仅图标', text: '仅文字', both: '图标和文字' };
+
   var prefs = {
     theme: read('theme', 'system'),
+    encoding: read('encoding', 'utf8'),
+    format: read('format', 'md'),
+    toolbarDisplay: read('toolbar-display', 'icon'),
+    // Which buttons are on. Stored as a JSON map so a button added in a later
+    // version defaults to visible instead of vanishing for existing users.
+    toolbarShown: (function() {
+      try { return JSON.parse(read('toolbar-shown', 'null')) || {}; } catch (e) { return {}; }
+    })(),
     family: {
       ui: read('font-ui', ''),
       editor: read('font-editor', ''),
@@ -50,6 +62,45 @@ var Settings = (function() {
   };
 
   if (!THEME_LABEL[prefs.theme]) prefs.theme = 'system';
+  if (!ENCODING_LABEL_S[prefs.encoding]) prefs.encoding = 'utf8';
+  if (!FORMAT_LABEL[prefs.format]) prefs.format = 'md';
+  if (!DISPLAY_LABEL[prefs.toolbarDisplay]) prefs.toolbarDisplay = 'icon';
+
+  // ---------- toolbar ----------
+
+  function buttonList() {
+    return typeof TOOLBAR_BUTTONS !== 'undefined' ? TOOLBAR_BUTTONS : [];
+  }
+
+  function isShown(id) {
+    // Absent means "never touched" → visible. Only an explicit false hides.
+    return prefs.toolbarShown[id] !== false;
+  }
+
+  function applyToolbar() {
+    document.body.setAttribute('data-toolbar-display', prefs.toolbarDisplay);
+    buttonList().forEach(function(b) {
+      var el = document.getElementById(b.id);
+      if (el) el.style.display = isShown(b.id) ? '' : 'none';
+    });
+    // The separators would strand themselves against a hidden neighbour, so they
+    // only show while something visible sits on each side of them.
+    var kids = Array.prototype.slice.call(
+      document.querySelectorAll('.titlebar-actions > *'));
+    kids.forEach(function(el, i) {
+      if (!el.classList.contains('titlebar-sep')) return;
+      var before = false, after = false;
+      for (var j = i - 1; j >= 0; j--) {
+        if (kids[j].classList.contains('titlebar-sep')) break;
+        if (kids[j].style.display !== 'none') { before = true; break; }
+      }
+      for (var k = i + 1; k < kids.length; k++) {
+        if (kids[k].classList.contains('titlebar-sep')) break;
+        if (kids[k].style.display !== 'none') { after = true; break; }
+      }
+      el.style.display = (before && after) ? '' : 'none';
+    });
+  }
 
   // ---------- theme ----------
 
@@ -95,6 +146,7 @@ var Settings = (function() {
     applyFamily(slot);
     applySize(slot);
   });
+  applyToolbar();
 
   // ---------- system font list ----------
   //
@@ -128,9 +180,15 @@ var Settings = (function() {
 
   function refreshLabels() {
     document.getElementById('theme-value').textContent = THEME_LABEL[prefs.theme];
+    document.getElementById('encoding-value').textContent =
+      ENCODING_LABEL_S[prefs.encoding] + ' · ' + FORMAT_LABEL[prefs.format];
+    var shownCount = buttonList().filter(function(b) { return isShown(b.id); }).length;
+    document.getElementById('toolbar-value').textContent =
+      DISPLAY_LABEL[prefs.toolbarDisplay] + ' · ' + shownCount + ' 个';
+    // The merged card summarises all three slots, so it names the one most people
+    // came to change rather than concatenating three font names into an ellipsis.
+    document.getElementById('fonts-value').textContent = label('reading');
     ['ui', 'editor', 'reading'].forEach(function(slot) {
-      var el = panel.querySelector('[data-value="' + slot + '"]');
-      if (el) el.textContent = label(slot);
       var sample = panel.querySelector('[data-sample="' + slot + '"]');
       if (sample) {
         sample.style.fontFamily = 'var(' + CSS_FAMILY[slot] + ')';
@@ -229,6 +287,58 @@ var Settings = (function() {
     });
   }
 
+  function bindToolbar() {
+    var display = document.getElementById('toolbar-display');
+    display.value = prefs.toolbarDisplay;
+    display.addEventListener('change', function() {
+      prefs.toolbarDisplay = display.value;
+      write('toolbar-display', display.value);
+      applyToolbar();
+      refreshLabels();
+    });
+
+    var host = document.getElementById('toolbar-checks');
+    buttonList().forEach(function(b) {
+      var row = document.createElement('label');
+      row.className = 'settings-check';
+      var box = document.createElement('input');
+      box.type = 'checkbox';
+      box.checked = isShown(b.id);
+      var text = document.createElement('span');
+      text.textContent = b.label;
+      row.appendChild(box);
+      row.appendChild(text);
+      box.addEventListener('change', function() {
+        prefs.toolbarShown[b.id] = box.checked;
+        write('toolbar-shown', JSON.stringify(prefs.toolbarShown));
+        applyToolbar();
+        refreshLabels();
+      });
+      host.appendChild(row);
+    });
+  }
+
+  function bindEncoding() {
+    var enc = document.getElementById('encoding-select');
+    var fmt = document.getElementById('format-select');
+    enc.value = prefs.encoding;
+    fmt.value = prefs.format;
+
+    enc.addEventListener('change', function() {
+      prefs.encoding = enc.value;
+      write('encoding', enc.value);
+      refreshLabels();
+      // The status bar shows the default for any buffer with no file behind it.
+      if (typeof updateEncodingStatus === 'function') updateEncodingStatus();
+    });
+
+    fmt.addEventListener('change', function() {
+      prefs.format = fmt.value;
+      write('format', fmt.value);
+      refreshLabels();
+    });
+  }
+
   function bindTheme() {
     var radios = panel.querySelectorAll('input[name="pd-theme"]');
     Array.prototype.forEach.call(radios, function(radio) {
@@ -278,6 +388,8 @@ var Settings = (function() {
 
   buildSelects();
   bindTheme();
+  bindToolbar();
+  bindEncoding();
   bindCards();
   refreshLabels();
 

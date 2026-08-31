@@ -10,13 +10,17 @@ window.__fromRust = function(event, data) {
     case 'file_opened':
       cancelDropFallback();
       addRecentFile(data.path);
-      TabManager.createTab(data.path, data.content);
+      TabManager.createTab(data.path, data.content, null, null, data.encoding);
       break;
     case 'file_saved':
       TabManager.markClean();
       if (data.path) {
         TabManager.updateTabPath(null, data.path);
       }
+      // A save-as can change the encoding on disk, so adopt what Rust wrote.
+      var savedTab = TabManager.getActiveTab();
+      if (savedTab && data.encoding) savedTab.encoding = data.encoding;
+      updateEncodingStatus();
       onFileSaved();
       break;
     case 'stdin_opened':
@@ -397,11 +401,45 @@ function toggleTOC() {
   if (tocOpen) updateTOC();
 }
 
+// Encoding shown in the status bar. A file that was opened keeps whatever Rust
+// detected in it; an untitled buffer shows the configured default, since that is
+// what it will be written as.
+var ENCODING_LABEL = { utf8: 'UTF-8', utf8bom: 'UTF-8 BOM', utf16le: 'UTF-16 LE' };
+
+function defaultEncoding() {
+  try { return localStorage.getItem('peekdown-encoding') || 'utf8'; } catch (e) { return 'utf8'; }
+}
+
+function defaultFormat() {
+  try { return localStorage.getItem('peekdown-format') || 'md'; } catch (e) { return 'md'; }
+}
+
+function updateEncodingStatus() {
+  var tab = TabManager.getActiveTab();
+  var enc = (tab && tab.encoding) || defaultEncoding();
+  document.getElementById('status-encoding').textContent = ENCODING_LABEL[enc] || enc;
+}
+
 function doSave() {
   var tab = TabManager.getActiveTab();
-  var data = { content: document.getElementById('editor').value };
+  var data = {
+    content: document.getElementById('editor').value,
+    // Re-saving keeps the file in the encoding it arrived in; only a brand-new
+    // buffer gets the configured default.
+    encoding: (tab && tab.encoding) || defaultEncoding(),
+    format: defaultFormat()
+  };
   if (tab && tab.path) data.path = tab.path;
   sendToRust('save_file', data);
+}
+
+function doSaveAs() {
+  var tab = TabManager.getActiveTab();
+  sendToRust('save_as', {
+    content: document.getElementById('editor').value,
+    encoding: (tab && tab.encoding) || defaultEncoding(),
+    format: defaultFormat()
+  });
 }
 
 // Zoom
@@ -413,8 +451,10 @@ var ZOOM_MAX = 3;
 function applyZoom(level) {
   zoomLevel = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, level));
   document.documentElement.style.setProperty('--zoom', zoomLevel);
+  var pct = Math.round(zoomLevel * 100) + '%';
+  document.getElementById('status-zoom').textContent = pct;
   var toast = $.zoomToast || document.getElementById('zoom-toast');
-  toast.textContent = Math.round(zoomLevel * 100) + '%';
+  toast.textContent = pct;
   toast.classList.add('visible');
   clearTimeout(applyZoom._timer);
   applyZoom._timer = setTimeout(function() {
@@ -616,7 +656,7 @@ document.addEventListener('keydown', function(e) {
     doSave();
   } else if (e.ctrlKey && e.shiftKey && (e.key === 'S' || e.key === 's')) {
     e.preventDefault();
-    sendToRust('save_as', { content: document.getElementById('editor').value });
+    doSaveAs();
   } else if (e.ctrlKey && e.key === 'e') {
     e.preventDefault();
     toggleMode();
@@ -753,9 +793,35 @@ document.addEventListener('drop', function(e) {
 });
 
 // Toolbar Buttons
+//
+// TOOLBAR_BUTTONS is the single source of truth for the bar: settings.js reads it
+// to build the visibility checkboxes, and the loop below injects each label so the
+// text/both display modes have something to show. Keeping the order here means the
+// settings list can never drift out of sync with the bar itself.
+var TOOLBAR_BUTTONS = [
+  { id: 'btn-settings', label: '设置' },
+  { id: 'btn-new', label: '新建' },
+  { id: 'btn-open', label: '打开' },
+  { id: 'btn-save', label: '保存' },
+  { id: 'btn-saveas', label: '另存为' },
+  { id: 'btn-toggle', label: '预览' },
+  { id: 'btn-split', label: '分栏' },
+  { id: 'btn-toc', label: '大纲' }
+];
+
+TOOLBAR_BUTTONS.forEach(function(b) {
+  var el = document.getElementById(b.id);
+  if (!el) return;
+  var span = document.createElement('span');
+  span.className = 'btn-label';
+  span.textContent = b.label;
+  el.appendChild(span);
+});
+
 document.getElementById('btn-new').addEventListener('click', function() { TabManager.createTab(null, ''); });
 document.getElementById('btn-open').addEventListener('click', function() { sendToRust('open_file'); });
 document.getElementById('btn-save').addEventListener('click', doSave);
+document.getElementById('btn-saveas').addEventListener('click', doSaveAs);
 document.getElementById('btn-toggle').addEventListener('click', toggleMode);
 document.getElementById('btn-split').addEventListener('click', toggleSplit);
 document.getElementById('btn-toc').addEventListener('click', toggleTOC);
@@ -766,6 +832,7 @@ document.getElementById('btn-toc').addEventListener('click', toggleTOC);
 document.addEventListener('DOMContentLoaded', function() {
   TabManager.createTab(null, '');
   updateWordCount();
+  updateEncodingStatus();
   showRecentPanel();
   sendToRust('ready');
 });

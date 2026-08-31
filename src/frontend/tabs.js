@@ -7,7 +7,7 @@ var TabManager = (function() {
     return p.replace(/\\/g, '/');
   }
 
-  function createTab(path, content, forceMode, forceFilename) {
+  function createTab(path, content, forceMode, forceFilename, encoding) {
     if (path) {
       var existing = findTabByPath(path);
       if (existing) {
@@ -29,6 +29,7 @@ var TabManager = (function() {
       active.content = content != null ? content : '';
       active.dirty = false;
       active.mode = 'preview';
+      active.encoding = encoding || null;
       restoreTabState(active);
       renderTabBar();
       updateWindowTitle();
@@ -43,6 +44,9 @@ var TabManager = (function() {
       content: content != null ? content : '',
       dirty: false,
       mode: forceMode || (path ? 'preview' : 'edit'),
+      // null means "no file behind this yet" — the status bar falls back to the
+      // configured default rather than claiming the buffer already has an encoding.
+      encoding: encoding || null,
       scrollTop: 0,
       cursorStart: 0,
       cursorEnd: 0,
@@ -146,6 +150,7 @@ var TabManager = (function() {
 
     document.getElementById('status-file').textContent = tab.filename;
     if (typeof updateWordCount === 'function') updateWordCount();
+    if (typeof updateEncodingStatus === 'function') updateEncodingStatus();
     if (typeof showRecentPanel === 'function') showRecentPanel();
     if (typeof tocOpen !== 'undefined' && tocOpen && typeof updateTOC === 'function') updateTOC();
   }
@@ -226,7 +231,7 @@ var TabManager = (function() {
       var add = document.createElement('div');
       add.className = 'tab-new';
       add.textContent = '+';
-      add.title = '新建标签页 (Ctrl+N)';
+      add.title = '新建文档 (Ctrl+N)';
       add.addEventListener('click', function() { createTab(null, ''); });
       bar.appendChild(add);
     }
