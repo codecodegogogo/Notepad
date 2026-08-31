@@ -3,6 +3,7 @@ use std::sync::{Arc, Mutex};
 use tao::window::Window;
 use wry::WebView;
 
+use crate::file_assoc;
 use crate::file_ops;
 use crate::fonts;
 use crate::state::AppState;
@@ -140,6 +141,18 @@ pub fn handle_ipc_message(
             // Mirrored out of localStorage because the next launch has to read it
             // before there is a WebView to ask.
             crate::app_config::set_multitab(parsed.enabled.unwrap_or(true));
+        }
+        "register_assoc" => {
+            file_assoc::register();
+        }
+        "unregister_assoc" => {
+            file_assoc::unregister();
+        }
+        "query_assoc" => {
+            let registered = file_assoc::is_registered();
+            let _ = webview.evaluate_script(&format!(
+                "window.__setAssocStatus({})", registered
+            ));
         }
         "new_window" => {
             // Single-document mode: a second document means a second process.

@@ -139,14 +139,14 @@ Binary output: `target/release/notepad.exe`
 - Split view (Ctrl+\) with live preview
 - Syntax highlighting for code blocks
 - Find bar (Ctrl+F) with match highlighting; Ctrl+H grows a replace row (替换 / 全部替换, edit mode only)
-- 个性化 settings group: default open mode (阅读 / 编辑) for opened files, and auto-save interval (off / 15s–5min; only dirty file-backed tabs, never untitled buffers)
+- 个性化 settings group: default open mode (阅读 / 编辑) for opened files, auto-save interval (off / 15s–5min; only dirty file-backed tabs, never untitled buffers), and file-type association (registers .md / .markdown / .mdown / .mdx / .txt / .text / .log in HKCU so the app appears in "Open with" menus — idempotent on every startup, with explicit register/unregister buttons in settings)
 - Table of Contents sidebar (Ctrl+Shift+O)
 - Zoom (Ctrl+/-, Ctrl+scroll) with toast indicator
 - Draggable preview width
 - Recent files panel on empty tabs
 - Cross-mode selection preservation when toggling edit/preview
 - Drag & drop (single and multi-file, any text file — folders are rejected with a message)
-- File associations via CLI arg
+- File associations via CLI arg and OS registry (HKCU): the app registers itself on every startup for .md / .markdown / .mdown / .mdx / .txt / .text / .log, and the open dialog filter now includes all seven formats (was just .md / .markdown / .txt before)
 
 ## Conventions
 - Keep the binary small: use `opt-level = "s"`, `lto = "fat"`, `panic = "abort"`, `strip = "none"` (never strip symbols — needed for crash diagnostics)

@@ -1115,6 +1115,37 @@ body.preview-resizing #preview { user-select: none; }
   line-height: 1.5;
 }
 
+/* --- Action buttons inside a settings card (e.g. file association) --- */
+.settings-action-btn {
+  height: calc(28px * var(--ui-scale));
+  padding: 0 14px;
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+  background: var(--accent);
+  color: #fff;
+  font-family: var(--font-body);
+  font-size: calc(11.5px * var(--ui-scale));
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s;
+}
+
+.settings-action-btn:hover {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+}
+
+.settings-action-btn-ghost {
+  background: transparent;
+  color: var(--text-secondary);
+  border-color: var(--border);
+}
+
+.settings-action-btn-ghost:hover {
+  background: var(--bg-raised);
+  border-color: var(--text-dim);
+  color: var(--text);
+}
+
 /* --- Checkbox rows (toolbar button picker) --- */
 .settings-check {
   display: flex;

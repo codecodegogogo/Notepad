@@ -228,6 +228,27 @@
           </div>
         </div>
 
+        <div class="settings-card" data-card="assoc">
+          <button class="settings-card-head">
+            <span class="settings-card-icon">
+              <svg viewBox="0 0 1024 1024" fill="currentColor"><path d="M512 85.333333a426.666667 426.666667 0 1 1 0 853.333334 426.666667 426.666667 0 0 1 0-853.333334z m0 384a42.666667 42.666667 0 0 0-42.666667 42.666667v213.333333a42.666667 42.666667 0 0 0 85.333334 0V512a42.666667 42.666667 0 0 0-42.666667-42.666667z m0-192a53.333333 53.333333 0 1 0 0 106.666667 53.333333 53.333333 0 0 0 0-106.666667z"/></svg>
+            </span>
+            <span class="settings-card-text">
+              <span class="settings-card-title">文件关联</span>
+              <span class="settings-card-desc">双击 .md .txt 等文本文件用本软件打开</span>
+            </span>
+            <span class="settings-card-value" id="assoc-value">检测中…</span>
+            <span class="settings-card-chevron"><svg viewBox="0 0 10 10"><polyline points="2,3.5 5,6.5 8,3.5"/></svg></span>
+          </button>
+          <div class="settings-card-body">
+            <div class="settings-hint">关联的格式：.md .markdown .mdown .mdx .txt .text .log</div>
+            <div class="settings-row" style="margin-top:8px; gap:8px;">
+              <button id="assoc-register" class="settings-action-btn">设为默认</button>
+              <button id="assoc-unregister" class="settings-action-btn settings-action-btn-ghost">取消关联</button>
+            </div>
+          </div>
+        </div>
+
         <div class="settings-group">文本格式</div>
 
         <div class="settings-card" data-card="fonts">

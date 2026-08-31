@@ -41,7 +41,8 @@ extern "system" {
 
 pub fn pick_open_file() -> Option<String> {
     FileDialog::new()
-        .add_filter("Markdown 文件", &["md", "markdown", "txt"])
+        // Matches the formats registered in file_assoc.rs.
+        .add_filter("文本文件", &["md", "markdown", "mdown", "mdx", "txt", "text", "log"])
         .add_filter("所有文件", &["*"])
         .pick_file()
         .map(|p| p.to_string_lossy().to_string())

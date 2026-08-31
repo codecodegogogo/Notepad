@@ -14,6 +14,7 @@ use windows::Win32::UI::WindowsAndMessaging::{SetWindowPos, SWP_ASYNCWINDOWPOS, 
 use wry::{WebViewBuilder, WebViewBuilderExtWindows, WebViewExtWindows};
 
 mod app_config;
+mod file_assoc;
 mod file_ops;
 mod fonts;
 mod ipc;
@@ -92,6 +93,10 @@ fn main() {
             }
         }
     }
+
+    // Register file associations (HKCU, no elevation). Idempotent — safe on every
+    // startup. Writes .md / .txt / .log etc. to point at this exe.
+    file_assoc::register();
 
     // Single-instance gate. Only while 多标签 is on: with it off, every launch is
     // meant to be its own window, which is what a plain second process already

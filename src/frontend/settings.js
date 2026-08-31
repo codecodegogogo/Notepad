@@ -418,6 +418,34 @@ var Settings = (function() {
     });
   }
 
+  function bindAssoc() {
+    var valueEl = document.getElementById('assoc-value');
+    var regBtn   = document.getElementById('assoc-register');
+    var unregBtn = document.getElementById('assoc-unregister');
+
+    // Rust answers query_assoc with __setAssocStatus.
+    window.__setAssocStatus = function(registered) {
+      if (!valueEl) return;
+      valueEl.textContent = registered ? '已关联' : '未关联';
+      valueEl.style.color = registered ? '' : 'var(--text-dim)';
+    };
+
+    if (regBtn) regBtn.addEventListener('click', function() {
+      if (typeof sendToRust === 'function') sendToRust('register_assoc');
+      // Optimistic update; query confirms.
+      setTimeout(function() {
+        if (typeof sendToRust === 'function') sendToRust('query_assoc');
+      }, 300);
+    });
+
+    if (unregBtn) unregBtn.addEventListener('click', function() {
+      if (typeof sendToRust === 'function') sendToRust('unregister_assoc');
+      setTimeout(function() {
+        if (typeof sendToRust === 'function') sendToRust('query_assoc');
+      }, 300);
+    });
+  }
+
   function bindCards() {
     var cards = panel.querySelectorAll('.settings-card:not(.static)');
     Array.prototype.forEach.call(cards, function(card) {
@@ -432,6 +460,8 @@ var Settings = (function() {
   function open() {
     if (typeof closeFind === 'function') closeFind();
     requestFonts();
+    // Refresh file-association status so the panel shows the current state.
+    if (typeof sendToRust === 'function') sendToRust('query_assoc');
     panel.classList.add('visible');
     panel.scrollTop = 0;
     gear.classList.add('active');
@@ -455,6 +485,7 @@ var Settings = (function() {
   bindTheme();
   bindMultitab();
   bindPersonalize();
+  bindAssoc();
   bindToolbar();
   bindEncoding();
   bindCards();
