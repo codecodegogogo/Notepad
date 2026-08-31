@@ -14,6 +14,7 @@ use windows::Win32::UI::WindowsAndMessaging::{SetWindowPos, SWP_ASYNCWINDOWPOS, 
 use wry::{WebViewBuilder, WebViewBuilderExtWindows, WebViewExtWindows};
 
 mod file_ops;
+mod fonts;
 mod ipc;
 mod state;
 mod window_state;

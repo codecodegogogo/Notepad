@@ -12,45 +12,6 @@ var Settings = (function() {
     reading: { list: [13, 14, 15, 16, 17, 18, 20, 22, 24, 28], def: 16 }
   };
 
-  // [family name, label shown in the dropdown]. Filtered to what is installed.
-  var CANDIDATES = {
-    ui: [
-      ['Microsoft YaHei UI', '微软雅黑 UI'],
-      ['Microsoft YaHei', '微软雅黑'],
-      ['Segoe UI', 'Segoe UI'],
-      ['DengXian', '等线'],
-      ['Source Han Sans SC', '思源黑体'],
-      ['Noto Sans SC', 'Noto Sans SC'],
-      ['HarmonyOS Sans SC', 'HarmonyOS Sans SC'],
-      ['PingFang SC', '苹方'],
-      ['Inter', 'Inter'],
-      ['SimHei', '黑体']
-    ],
-    editor: [
-      ['Cascadia Code', 'Cascadia Code'],
-      ['Cascadia Mono', 'Cascadia Mono'],
-      ['Consolas', 'Consolas'],
-      ['JetBrains Mono', 'JetBrains Mono'],
-      ['Fira Code', 'Fira Code'],
-      ['Sarasa Mono SC', '更纱黑体 Mono SC'],
-      ['Source Code Pro', 'Source Code Pro'],
-      ['DejaVu Sans Mono', 'DejaVu Sans Mono'],
-      ['Courier New', 'Courier New']
-    ],
-    reading: [
-      ['Georgia', 'Georgia'],
-      ['SimSun', '宋体'],
-      ['KaiTi', '楷体'],
-      ['FangSong', '仿宋'],
-      ['Source Han Serif SC', '思源宋体'],
-      ['Noto Serif SC', 'Noto Serif SC'],
-      ['LXGW WenKai', '霞鹜文楷'],
-      ['Microsoft YaHei', '微软雅黑'],
-      ['Cambria', 'Cambria'],
-      ['Times New Roman', 'Times New Roman']
-    ]
-  };
-
   var THEME_LABEL = { light: '白天', dark: '夜间', system: '跟随系统' };
 
   // Captured before any override lands, so a user pick can be layered on top of
@@ -135,25 +96,22 @@ var Settings = (function() {
     applySize(slot);
   });
 
-  // ---------- installed-font detection ----------
-  // document.fonts.check() reports true for names that are not installed, so
-  // fall back to comparing rendered widths against dissimilar generic families.
-  var ctx = null;
-  var baselineWidth = {};
-  var PROBE = 'WMil中文汉字0189';
+  // ---------- system font list ----------
+  //
+  // Rust enumerates the installed families through GDI and hands them over via
+  // __setFonts. What came before was a hardcoded list of ~10 guesses per slot,
+  // narrowed further by canvas width-probing — so almost nothing on the machine
+  // was actually offered, and a font the probe misjudged was unreachable.
+  //
+  // Fetched on the first settings open, not at startup: enumeration costs a few
+  // milliseconds and most sessions never open the panel.
+  var systemFonts = null;
+  var fontsRequested = false;
 
-  function widthOf(stack) {
-    if (!ctx) ctx = document.createElement('canvas').getContext('2d');
-    ctx.font = '72px ' + stack;
-    return ctx.measureText(PROBE).width;
-  }
-
-  function isInstalled(name) {
-    var quoted = '"' + name + '"';
-    return ['monospace', 'sans-serif', 'serif'].some(function(generic) {
-      if (baselineWidth[generic] === undefined) baselineWidth[generic] = widthOf(generic);
-      return widthOf(quoted + ',' + generic) !== baselineWidth[generic];
-    });
+  function requestFonts() {
+    if (fontsRequested || systemFonts || typeof sendToRust !== 'function') return;
+    fontsRequested = true;
+    sendToRust('list_fonts');
   }
 
   // ---------- UI ----------
@@ -163,13 +121,9 @@ var Settings = (function() {
   var isOpen = false;
 
   function label(slot) {
-    var pick = prefs.family[slot];
-    var name = '默认';
-    if (pick) {
-      name = pick;
-      CANDIDATES[slot].forEach(function(c) { if (c[0] === pick) name = c[1]; });
-    }
-    return name + ' · ' + prefs.size[slot];
+    // Names arrive localised from Win32, so there is no alias table to consult:
+    // a Chinese Windows reports 微软雅黑, not "Microsoft YaHei".
+    return (prefs.family[slot] || '默认') + ' · ' + prefs.size[slot];
   }
 
   function refreshLabels() {
@@ -185,49 +139,80 @@ var Settings = (function() {
     });
   }
 
+  function option(value, text, previewFamily) {
+    var o = document.createElement('option');
+    o.value = value;
+    o.textContent = text;
+    // Chromium draws its own dropdown, so each row can be shown in the family
+    // it names — the whole point of picking from a list this long.
+    if (previewFamily) o.style.fontFamily = '"' + previewFamily + '"';
+    return o;
+  }
+
+  function appendGroup(sel, groupLabel, fonts) {
+    if (!fonts.length) return;
+    var g = document.createElement('optgroup');
+    g.label = groupLabel;
+    fonts.forEach(function(f) { g.appendChild(option(f.n, f.n, f.n)); });
+    sel.appendChild(g);
+  }
+
+  function fillFamilySelect(slot) {
+    var sel = panel.querySelector('[data-family="' + slot + '"]');
+    if (!sel) return;
+    var pick = prefs.family[slot];
+    sel.innerHTML = '';
+    sel.appendChild(option('', '默认'));
+
+    if (!systemFonts) {
+      // Still waiting on Rust. The stored pick has to stay selectable, or
+      // opening the panel would silently reset it to 默认.
+      if (pick) sel.appendChild(option(pick, pick, pick));
+      sel.value = pick;
+      return;
+    }
+
+    if (slot === 'editor') {
+      // Monospace on top for the editor: hunting for Consolas among a few
+      // hundred proportional families is the one case a flat list hurts.
+      appendGroup(sel, '等宽字体', systemFonts.filter(function(f) { return f.m; }));
+      appendGroup(sel, '其他字体', systemFonts.filter(function(f) { return !f.m; }));
+    } else {
+      systemFonts.forEach(function(f) { sel.appendChild(option(f.n, f.n, f.n)); });
+    }
+
+    var installed = systemFonts.some(function(f) { return f.n === pick; });
+    if (pick && !installed) sel.appendChild(option(pick, pick + '（未安装）'));
+    sel.value = pick;
+  }
+
+  // Rust's reply to list_fonts.
+  window.__setFonts = function(list) {
+    if (!list || !list.length) return;
+    // Rust sorts by UTF-8 bytes, which files every CJK name after every Latin
+    // one; collate here so 中文字体 land in pinyin order.
+    systemFonts = list.slice().sort(function(a, b) {
+      return a.n.localeCompare(b.n, 'zh-Hans-CN');
+    });
+    ['ui', 'editor', 'reading'].forEach(fillFamilySelect);
+  };
+
   function buildSelects() {
     ['ui', 'editor', 'reading'].forEach(function(slot) {
       var familySel = panel.querySelector('[data-family="' + slot + '"]');
       var sizeSel = panel.querySelector('[data-size="' + slot + '"]');
 
-      var opt = document.createElement('option');
-      opt.value = '';
-      opt.textContent = '默认';
-      familySel.appendChild(opt);
-
-      var seen = false;
-      CANDIDATES[slot].forEach(function(c) {
-        if (!isInstalled(c[0])) return;
-        var o = document.createElement('option');
-        o.value = c[0];
-        o.textContent = c[1];
-        familySel.appendChild(o);
-        if (c[0] === prefs.family[slot]) seen = true;
-      });
-
-      // A stored font that is no longer installed still round-trips.
-      if (prefs.family[slot] && !seen) {
-        var missing = document.createElement('option');
-        missing.value = prefs.family[slot];
-        missing.textContent = prefs.family[slot] + '（未安装）';
-        familySel.appendChild(missing);
-      }
-      familySel.value = prefs.family[slot];
+      fillFamilySelect(slot);
 
       SIZES[slot].list.forEach(function(n) {
-        var o = document.createElement('option');
-        o.value = n;
-        o.textContent = n;
-        sizeSel.appendChild(o);
+        sizeSel.appendChild(option(n, n));
       });
       if (SIZES[slot].list.indexOf(prefs.size[slot]) === -1) {
-        var extra = document.createElement('option');
-        extra.value = prefs.size[slot];
-        extra.textContent = prefs.size[slot];
-        sizeSel.appendChild(extra);
+        sizeSel.appendChild(option(prefs.size[slot], prefs.size[slot]));
       }
       sizeSel.value = prefs.size[slot];
 
+      // Bound to the <select>, so rebuilding its options keeps the handler.
       familySel.addEventListener('change', function() {
         prefs.family[slot] = familySel.value;
         write('font-' + slot, familySel.value);
@@ -271,6 +256,7 @@ var Settings = (function() {
 
   function open() {
     if (typeof closeFind === 'function') closeFind();
+    requestFonts();
     panel.classList.add('visible');
     panel.scrollTop = 0;
     gear.classList.add('active');

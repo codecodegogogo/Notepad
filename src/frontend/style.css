@@ -1,8 +1,17 @@
 :root {
+  /* Chromium paints <select> popups and scrollbars from this, not from our
+     custom properties. Without it the font dropdown was light-on-white in the
+     dark theme — unreadable, and much more obvious now that the list is long. */
+  color-scheme: dark;
   --bg-base: #111113;
   --bg-surface: #18181b;
   --bg-raised: #1f1f23;
   --bg-overlay: #27272b;
+  /* Settings-panel surfaces. The two themes stack them in opposite directions —
+     dark lifts a card above the page, light drops the page below a white card —
+     so they are named by role instead of reusing base/surface. */
+  --bg-card: #18181b;
+  --bg-sunken: #111113;
   --text: #c8c8d0;
   --text-secondary: #85858f;
   --text-dim: #6a6a78;
@@ -35,23 +44,29 @@
   --h-statusbar: calc(22px * var(--ui-scale));
 }
 
-/* Light theme — Catppuccin Latte inspired */
+/* Light theme — Windows 11 Notepad (Fluent light) */
 [data-theme="light"] {
-  --bg-base: #eff1f5;
-  --bg-surface: #e6e9ef;
-  --bg-raised: #dce0e8;
-  --bg-overlay: #ccd0da;
-  --text: #4c4f69;
-  --text-secondary: #6c6f85;
-  --text-dim: #8c8fa1;
-  --accent: #c4723a;
-  --accent-glow: rgba(196, 114, 58, 0.12);
-  --accent-hover: #b5621f;
-  --link: #1e66f5;
-  --border: #ccd0da;
-  --border-subtle: #dce0e8;
-  --danger: #d20f39;
-  --scrollbar: #bcc0cc;
+  color-scheme: light;
+  /* Note the direction: here the document is the *lightest* layer, floating in
+     pure white on Fluent's #f3f3f3 chrome. The dark theme stacks the other way
+     round, which is why the settings surfaces below get their own variables. */
+  --bg-base: #ffffff;
+  --bg-surface: #f3f3f3;
+  --bg-raised: #eaeaea;
+  --bg-overlay: #f9f9f9;
+  --bg-card: #ffffff;
+  --bg-sunken: #f3f3f3;
+  --text: #1b1b1b;
+  --text-secondary: #5d5d5d;
+  --text-dim: #8d8d8d;
+  --accent: #005fb8;
+  --accent-glow: rgba(0, 95, 184, 0.10);
+  --accent-hover: #1a6fc4;
+  --link: #0067c0;
+  --border: #e5e5e5;
+  --border-subtle: #f0f0f0;
+  --danger: #c42b1c;
+  --scrollbar: #c9c9c9;
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -78,6 +93,11 @@ html, body {
   border-bottom: 1px solid var(--border);
   position: relative;
 }
+
+/* Notepad puts its tabs inside the titlebar, so once the tab strip is showing
+   the two should read as one continuous block of chrome — the only boundary
+   that matters is the one against the white page below. */
+.has-tabs #titlebar { border-bottom-color: transparent; }
 
 /* --- Action buttons (left) --- */
 .titlebar-actions {
@@ -221,10 +241,12 @@ html, body {
    ============================================ */
 #tab-bar {
   display: flex;
-  align-items: center;
+  /* Tabs sit on the bar's bottom edge so the active one runs into the page,
+     Notepad-style. No border-bottom here for the same reason: a line would cut
+     the white tab off from the white document underneath it. */
+  align-items: flex-end;
   height: var(--h-tabbar);
   background: var(--bg-surface);
-  border-bottom: 1px solid var(--border);
   overflow-x: auto;
   overflow-y: hidden;
   padding: 0 4px;
@@ -236,9 +258,9 @@ html, body {
 .tab {
   display: flex;
   align-items: center;
-  height: calc(24px * var(--ui-scale));
+  height: calc(26px * var(--ui-scale));
   padding: 0 6px 0 10px;
-  border-radius: 4px;
+  border-radius: 5px 5px 0 0;
   font-size: calc(11px * var(--ui-scale));
   color: var(--text-dim);
   cursor: pointer;
@@ -255,7 +277,8 @@ html, body {
 
 .tab.active {
   color: var(--text);
-  background: var(--bg-raised);
+  /* Same fill as the document, which is what makes the tab read as its page. */
+  background: var(--bg-base);
 }
 
 .tab-label {
@@ -297,6 +320,9 @@ html, body {
   color: var(--text-dim);
   cursor: pointer;
   flex-shrink: 0;
+  /* The bar bottom-aligns its children; this centres the button against the
+     tabs beside it instead of letting it sit on the floor. */
+  margin-bottom: calc(3px * var(--ui-scale));
   transition: color 0.12s, background 0.12s;
 }
 
@@ -757,7 +783,7 @@ body.preview-resizing #preview { user-select: none; }
   position: absolute;
   inset: 0;
   z-index: 40;
-  background: var(--bg-base);
+  background: var(--bg-sunken);
   overflow-y: auto;
   font-family: var(--font-body);
 }
@@ -773,7 +799,7 @@ body.preview-resizing #preview { user-select: none; }
   gap: 10px;
   padding: 0 14px;
   height: calc(42px * var(--ui-scale));
-  background: var(--bg-base);
+  background: var(--bg-sunken);
   border-bottom: 1px solid var(--border-subtle);
 }
 
@@ -825,7 +851,7 @@ body.preview-resizing #preview { user-select: none; }
 .settings-group:first-child { margin-top: 4px; }
 
 .settings-card {
-  background: var(--bg-surface);
+  background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: 6px;
   margin-bottom: 6px;
@@ -983,10 +1009,20 @@ body.preview-resizing #preview { user-select: none; }
 
 .settings-select.size { flex: 0 0 auto; width: calc(76px * var(--ui-scale)); }
 
+/* Each option is drawn in the family it names, so the group headings have to
+   opt back out or they inherit whichever font happened to precede them. */
+.settings-select optgroup {
+  font-family: var(--font-body);
+  font-style: normal;
+  color: var(--text-dim);
+}
+
 .settings-sample {
   margin: 8px 4px 0;
   padding: 9px 11px;
-  background: var(--bg-base);
+  /* Recedes from the card in both themes; --bg-base would be white-on-white
+     in the light one. */
+  background: var(--bg-sunken);
   border: 1px solid var(--border-subtle);
   border-radius: 4px;
   color: var(--text-secondary);
@@ -1022,7 +1058,7 @@ body.preview-resizing #preview { user-select: none; }
   border-radius: 8px;
   padding: 4px 6px;
   z-index: 100;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.16);
 }
 
 .has-tabs #find-bar { top: calc(var(--h-titlebar) + var(--h-tabbar) + 6px); }
@@ -1092,7 +1128,7 @@ mark.find-match.find-active {
 }
 
 [data-theme="light"] mark.find-match {
-  background: rgba(196, 114, 58, 0.2);
+  background: rgba(0, 95, 184, 0.16);
 }
 
 [data-theme="light"] mark.find-match.find-active {
@@ -1112,6 +1148,9 @@ mark.find-match.find-active {
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 8px 20px;
+  /* Fluent's light flyout fill is nearly white, so the toast needs the same
+     lift the find bar already has or it vanishes into the page. */
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.16);
   font-family: var(--font-body);
   font-size: calc(13px * var(--ui-scale));
   font-weight: 600;

@@ -23,6 +23,7 @@ Binary output: `target/release/peekdown.exe`
 - `src/main.rs` — Entry point, window + WebView setup, event loop, HTML assembly
 - `src/ipc.rs` — IPC message dispatch between Rust and JS
 - `src/file_ops.rs` — File read/write, native open/save dialogs (rfd)
+- `src/fonts.rs` — System font-family enumeration via hand-declared GDI `EnumFontFamiliesExW`
 - `src/state.rs` — App state: pending file/stdin payloads, assembled HTML, live non-maximized window geometry (JS owns all tab state)
 - `src/window_state.rs` — Window geometry + maximized-state persistence (config dir: `peekdown/`)
 - `build.rs` — Embeds app icon via winresource
@@ -62,13 +63,25 @@ Binary output: `target/release/peekdown.exe`
   Ctrl+S). app.js mirrors the HTML5 drag events, `preventDefault`s them (Chromium otherwise
   navigates to `file://`) and only falls back to `FileReader` if no `file_opened` arrives within
   400 ms — so exactly one document opens no matter which layer won the drag
+- Font pickers list the **real installed families**: `fonts.rs` enumerates them through GDI
+  (`EnumFontFamiliesExW`, `@`-prefixed vertical CJK duplicates skipped) and `ipc.rs` answers the
+  `list_fonts` command with `window.__setFonts`. Requested lazily on the first settings open, so
+  startup does not pay for it. Names come back already localised, so no alias table is needed.
+  Each `<option>` is rendered in the family it names; the editor slot puts monospace in a leading
+  `<optgroup>`. `color-scheme` on `:root` is what makes Chromium's native dropdown legible in the
+  dark theme
+- Tab strip follows Notepad: tabs bottom-align in the bar with only their top corners rounded,
+  and the active tab is filled with `--bg-base` so it runs into the page. `#tab-bar` therefore
+  carries no `border-bottom`, and `.has-tabs #titlebar` drops its own so the chrome reads as one
+  block
 - `__VERSION__` in index.html is replaced with `CARGO_PKG_VERSION` at compile time
 
 ## Features
 - Chinese UI throughout (tooltips, status bar, dialogs, empty states)
 - Settings panel (Ctrl+,) in the Win11-Notepad style — accordion cards, gear button top-right
-- Themes: Day / Night / Follow system (Catppuccin Latte / Mocha)
-- Configurable font family + size for all three slots (UI chrome, editor, reading)
+- Themes: Day / Night / Follow system (Win11-Notepad light / Catppuccin-Mocha dark)
+- Configurable font family + size for all three slots (UI chrome, editor, reading), choosing from
+  every font installed on the system
 - Multi-tab with auto-hiding tab bar (single tab = no bar) and a trailing `+` button
 - Window position, size and maximized state are restored on next launch
 - Maximize button swaps to a restore glyph while maximized
@@ -86,7 +99,11 @@ Binary output: `target/release/peekdown.exe`
 ## Conventions
 - Keep the binary small: use `opt-level = "s"`, `lto = "fat"`, `panic = "abort"`, `strip = "none"` (never strip symbols — needed for crash diagnostics)
 - No external runtime dependencies — everything embedded in the .exe
-- Dark theme with Catppuccin-inspired color palette (Mocha dark, Latte light)
+- Dark theme is Catppuccin-Mocha-inspired; light theme is Windows 11 Notepad's Fluent palette
+  (`#ffffff` page, `#f3f3f3` chrome, `#e5e5e5` dividers, `#005fb8` accent). The two stack their
+  surfaces in **opposite directions** — dark lifts a card above the page, light drops the page
+  below a white card — so settings surfaces use `--bg-card` / `--bg-sunken` rather than reusing
+  `--bg-base` / `--bg-surface`
 - JS uses IIFE pattern for modules (TabManager, Settings)
 - localStorage keys prefixed with `peekdown-` (theme, recent, preview-width,
   font-ui/editor/reading, size-ui/editor/reading)

@@ -4,6 +4,7 @@ use tao::window::Window;
 use wry::WebView;
 
 use crate::file_ops;
+use crate::fonts;
 use crate::state::AppState;
 
 #[derive(Deserialize)]
@@ -117,6 +118,18 @@ pub fn handle_ipc_message(
             if let Some(message) = parsed.message {
                 send_to_js(webview, "error", &serde_json::json!({ "message": message }));
             }
+        }
+        "list_fonts" => {
+            // Enumerated on demand rather than at startup: it costs a few
+            // milliseconds, and most launches never open the settings panel.
+            let families: Vec<serde_json::Value> = fonts::list_families()
+                .into_iter()
+                .map(|(name, mono)| serde_json::json!({ "n": name, "m": mono }))
+                .collect();
+            let _ = webview.evaluate_script(&format!(
+                "window.__setFonts({})",
+                serde_json::to_string(&families).unwrap()
+            ));
         }
         "read_image" => {
             if let Some(ref path) = parsed.path {
