@@ -32,6 +32,26 @@ window.__fromRust = function(event, data) {
   }
 };
 
+// Rust calls this once the startup payload — a double-clicked file, piped stdin,
+// or nothing at all — has been handed over and rendered. The window is created
+// hidden, so up to this point the user has seen nothing; asking for the reveal
+// here is what replaces the old visible boot sequence.
+window.__bootDone = function() {
+  var revealed = false;
+  function reveal() {
+    if (revealed) return;
+    revealed = true;
+    sendToRust('show_window');
+  }
+  // Two frames means the document really has been rasterised. But a hidden
+  // window may never produce a frame at all, so a timer backs that up — and Rust
+  // keeps its own deadline behind both.
+  if (window.requestAnimationFrame) {
+    requestAnimationFrame(function() { requestAnimationFrame(reveal); });
+  }
+  setTimeout(reveal, 150);
+};
+
 // Cached DOM refs
 var $ = {};
 document.addEventListener('DOMContentLoaded', function() {

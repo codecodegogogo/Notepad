@@ -133,6 +133,11 @@ pub fn handle_ipc_message(
                 send_to_js(webview, "error", &serde_json::json!({ "message": message }));
             }
         }
+        "show_window" => {
+            // The event loop does the actual reveal; it owns the maximized
+            // question. Setting a flag keeps that decision in one place.
+            state.lock().unwrap().show_requested = true;
+        }
         "list_fonts" => {
             // Enumerated on demand rather than at startup: it costs a few
             // milliseconds, and most launches never open the settings panel.
@@ -182,6 +187,10 @@ pub fn handle_ipc_message(
                     "title": title
                 }));
             }
+            // Scripts run in the order they are queued, so by the time this one
+            // executes the payload above is already in the DOM. It is the signal
+            // for JS to ask for the (still hidden) window to be revealed.
+            let _ = webview.evaluate_script("window.__bootDone && window.__bootDone()");
         }
         _ => eprintln!("Unknown IPC command: {}", parsed.command),
     }

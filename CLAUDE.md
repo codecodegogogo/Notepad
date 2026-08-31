@@ -80,6 +80,14 @@ Binary output: `target/release/peekdown.exe`
   `body[data-toolbar-display]` attribute (`icon` / `text` / `both`) — CSS does the switching, no
   DOM rebuild. Hiding a button is `style.display`. There are no group separators: one uniform gap
   runs between every button, so hiding one cannot strand a divider
+- The window is built with `with_visible(false)` and revealed only after the frontend has painted
+  its first document. A visible window exposes the whole boot — a blank frame while WebView2
+  starts, the default theme until `settings.js` (the last script) runs, the empty untitled tab
+  `DOMContentLoaded` creates, and only then the double-clicked file. The handshake is
+  `ready` → Rust sends the payload → `window.__bootDone()` → JS waits two frames (with a 150 ms
+  timer behind it, since a hidden window may never produce a frame) → `show_window` → the event
+  loop reveals. A 2.5 s deadline in the loop shows the window anyway if none of that arrives, so a
+  broken WebView2 cannot leave a windowless process
 - `window.confirm()` is not used. WebView2 renders it as a Chromium page dialog pinned to the top
   edge of the viewport, overlapping our own titlebar, unthemeable and unmovable. `askConfirm(msg,
   onOk)` in app.js draws `#confirm-overlay` instead and answers through a callback — which is why

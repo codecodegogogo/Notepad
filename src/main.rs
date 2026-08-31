@@ -114,6 +114,12 @@ fn main() {
         .with_inner_size(PhysicalSize::new(saved.width, saved.height))
         .with_position(PhysicalPosition::new(saved.x, saved.y))
         .with_maximized(saved.maximized)
+        // Built hidden, revealed once the frontend has painted its first
+        // document. A visible window shows the entire boot: a blank frame while
+        // WebView2 starts, the default theme until settings.js runs last, an
+        // empty untitled tab from DOMContentLoaded, and only then the file that
+        // was double-clicked.
+        .with_visible(false)
         .build(&event_loop)
         .unwrap();
 
@@ -239,8 +245,24 @@ fn main() {
     // so the value is pushed from here rather than guessed in the click handler.
     let mut last_maximized = saved.maximized;
 
+    // Reveal bookkeeping for the hidden window above.
+    let mut window_visible = false;
+    let want_maximized = saved.maximized;
+    // Last-resort net: if the frontend never reports in — WebView2 failed to
+    // start, a JS exception landed before __bootDone — the window still has to
+    // appear rather than leaving a process with no window at all. Long enough
+    // that a cold WebView2 start never trips it; tripping it just means the old
+    // visible-boot behaviour, not a broken app.
+    let show_deadline = std::time::Instant::now() + std::time::Duration::from_millis(2500);
+
     event_loop.run(move |event, _, control_flow| {
-        *control_flow = ControlFlow::Wait;
+        *control_flow = if window_visible {
+            ControlFlow::Wait
+        } else {
+            // Wait, but not past the fallback — otherwise a launch that produces
+            // no further events would never reach the deadline check below.
+            ControlFlow::WaitUntil(show_deadline)
+        };
 
         match event {
             Event::UserEvent(UserEvent::IpcMessage(msg)) => {
@@ -292,6 +314,20 @@ fn main() {
                 *control_flow = ControlFlow::Exit;
             }
             _ => {}
+        }
+
+        if !window_visible {
+            let requested = app_state.lock().unwrap().show_requested;
+            if requested || std::time::Instant::now() >= show_deadline {
+                window.set_visible(true);
+                // A window that has never been shown can have its builder-time
+                // maximize deferred by Windows, so re-assert it instead of
+                // trusting it survived the hidden phase.
+                if want_maximized && !window.is_maximized() {
+                    window.set_maximized(true);
+                }
+                window_visible = true;
+            }
         }
     });
 }
