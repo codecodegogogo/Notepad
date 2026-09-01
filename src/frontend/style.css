@@ -21,8 +21,8 @@
   /* Selection and find highlights are their own strength, deliberately not
      --accent-glow: that one is a button's active-state tint, and at the alpha
      that suits a 30px button a selected word is barely tinted at all. */
-  --selection: rgba(96, 205, 255, 0.32);
-  --find-match: rgba(96, 205, 255, 0.30);
+  --selection: rgba(96, 205, 255, 0.45);
+  --find-match: rgba(96, 205, 255, 0.42);
   --link: #7aafcf;
   --border: #252529;
   --border-subtle: #1e1e22;
@@ -69,8 +69,8 @@
   --accent-hover: #1a6fc4;
   /* Same role as in the dark theme: a selection/find strength well above the
      button-tint alpha of --accent-glow, tuned for the lighter ground. */
-  --selection: rgba(0, 95, 184, 0.22);
-  --find-match: rgba(0, 95, 184, 0.22);
+  --selection: rgba(0, 95, 184, 0.34);
+  --find-match: rgba(0, 95, 184, 0.34);
   --link: #0067c0;
   --border: #e5e5e5;
   --border-subtle: #f0f0f0;
@@ -1288,6 +1288,10 @@ mark.find-match {
 mark.find-match.find-active {
   background: var(--accent);
   color: var(--bg-base);
+  /* A ring, so the hit that next/prev just landed on is tellable from the other
+     matches at a glance — the fill alone reads as "one of many" once the plain
+     matches are this saturated. */
+  box-shadow: 0 0 0 2px var(--accent-glow);
 }
 
 [data-theme="light"] mark.find-match.find-active {

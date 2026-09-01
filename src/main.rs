@@ -140,7 +140,7 @@ fn main() {
     }
 
     let window = WindowBuilder::new()
-        .with_title("notepad - 未命名")
+        .with_title("notepads - 未命名")
         .with_decorations(false)
         .with_inner_size(PhysicalSize::new(saved.width, saved.height))
         .with_position(PhysicalPosition::new(saved.x, saved.y))

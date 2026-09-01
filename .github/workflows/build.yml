@@ -42,7 +42,7 @@ jobs:
       - name: Verify binary and embedded icon
         shell: pwsh
         run: |
-          $exe = 'target/release/notepad.exe'
+          $exe = 'target/release/notepads.exe'
           if (-not (Test-Path $exe)) { throw "build produced no $exe" }
           "size: {0:N0} KB" -f ((Get-Item $exe).Length / 1KB)
           Add-Type -AssemblyName System.Drawing
@@ -53,8 +53,8 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: notepad-exe
-          path: target/release/notepad.exe
+          name: notepads-exe
+          path: target/release/notepads.exe
           if-no-files-found: error
 
   release:
@@ -66,9 +66,9 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
-          name: notepad-exe
+          name: notepads-exe
 
       - uses: softprops/action-gh-release@v2
         with:
-          files: notepad.exe
+          files: notepads.exe
           generate_release_notes: true

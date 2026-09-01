@@ -222,7 +222,7 @@ var TabManager = (function() {
     var el = document.getElementById('titlebar-filename');
     if (el) el.textContent = name;
     // Taskbar / Alt+Tab always carries it.
-    sendToRust('set_title', { title: 'notepad - ' + name });
+    sendToRust('set_title', { title: 'notepads - ' + name });
   }
 
   function renderTabBar() {

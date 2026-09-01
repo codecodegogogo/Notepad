@@ -639,14 +639,72 @@ function clearPreviewHighlights() {
   findState.marks = [];
 }
 
+// Scroll a textarea so a character offset is visible. A textarea offers no API
+// for this — assigning selectionStart moves the selection but never scrolls — so
+// the text up to that offset is laid out in a mirror div that copies the
+// editor's box and font metrics. The mirror's height is that offset's y
+// position, which also makes this correct for wrapped lines, where counting
+// '\n' would land far off.
+var scrollMirror = null;
+
+function offsetTopInEditor(editor, offset) {
+  if (!scrollMirror) {
+    scrollMirror = document.createElement('div');
+    scrollMirror.setAttribute('aria-hidden', 'true');
+    document.body.appendChild(scrollMirror);
+  }
+  var cs = getComputedStyle(editor);
+  var s = scrollMirror.style;
+  s.position = 'absolute';
+  s.visibility = 'hidden';
+  s.top = '0';
+  s.left = '-9999px';
+  s.whiteSpace = 'pre-wrap';
+  s.overflowWrap = cs.overflowWrap;
+  s.wordBreak = cs.wordBreak;
+  s.fontFamily = cs.fontFamily;
+  s.fontSize = cs.fontSize;
+  s.fontWeight = cs.fontWeight;
+  s.lineHeight = cs.lineHeight;
+  s.letterSpacing = cs.letterSpacing;
+  s.tabSize = cs.tabSize;
+  s.padding = cs.padding;
+  s.border = cs.border;
+  s.boxSizing = cs.boxSizing;
+  s.width = editor.clientWidth + 'px';
+  scrollMirror.textContent = editor.value.substring(0, offset);
+  // scrollHeight counts both paddings, so it lands at the *bottom* of the offset's
+  // line and overshoots by one padding-bottom. Take that back off to get the line's
+  // own top edge, which is what the caller compares against scrollTop.
+  var padBottom = parseFloat(cs.paddingBottom) || 0;
+  var line = parseFloat(cs.lineHeight) || 20;
+  return Math.max(0, scrollMirror.scrollHeight - padBottom - line);
+}
+
+// Bring a match into view. Keeps a one-line margin at the top and two at the
+// bottom so a hit never sits flush against an edge; inside that band nothing
+// moves, otherwise walking neighbouring matches would jump the page each step.
+function revealInEditor(editor, offset) {
+  var y = offsetTopInEditor(editor, offset);
+  var line = parseFloat(getComputedStyle(editor).lineHeight) || 20;
+  var top = editor.scrollTop;
+  var bottom = top + editor.clientHeight;
+  if (y >= top + line && y <= bottom - line * 2) return;
+  editor.scrollTop = Math.max(0, y - editor.clientHeight / 2);
+}
+
 function goToMatch(idx) {
   findState.current = idx;
   if (currentMode === 'edit') {
     var match = findState.matches[idx];
     var editor = document.getElementById('editor');
-    editor.focus();
+    // Deliberately no focus() here: doFind runs on every keystroke in the find
+    // box, and focusing the editor would pull the caret out of it mid-word. The
+    // selection renders unfocused because #editor::selection is set explicitly.
     editor.selectionStart = match.start;
     editor.selectionEnd = match.end;
+    revealInEditor(editor, match.start);
+    updateCursorStatus();
   } else {
     findState.marks.forEach(function(m) { m.classList.remove('find-active'); });
     var mark = findState.marks[idx];

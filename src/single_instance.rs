@@ -14,8 +14,8 @@ use std::ffi::c_void;
 use std::fs;
 use std::path::PathBuf;
 
-const MUTEX_NAME: &str = "Local\\notepad-singleton";
-const EVENT_NAME: &str = "Local\\notepad-handoff";
+const MUTEX_NAME: &str = "Local\\notepads-singleton";
+const EVENT_NAME: &str = "Local\\notepads-handoff";
 
 const ERROR_ALREADY_EXISTS: u32 = 183;
 const WAIT_OBJECT_0: u32 = 0;

@@ -2,12 +2,16 @@
 //!
 //! Windows Shell resolves "which app opens .md" through a two-key chain:
 //!
-//!   HKCU\Software\Classes\.md          → ProgId string (e.g. "notepad.md")
-//!   HKCU\Software\Classes\notepad.md\
-//!     shell\open\command                → "C:\path\to\notepad.exe" "%1"
+//!   HKCU\Software\Classes\.md          → ProgId string (e.g. "notepads.FileType")
+//!   HKCU\Software\Classes\notepads.FileType\
+//!     shell\open\command                → "C:\path\to\notepads.exe" "%1"
 //!
 //! Writing in HKCU keeps it per-user and never requires a UAC prompt. All Win32
 //! is declared by hand — the same approach fonts.rs and file_ops.rs already use.
+//!
+//! The exe is deliberately named notepads.exe, not notepad.exe: Windows treats
+//! the inbox Notepad's name specially and refuses to let a same-named binary be
+//! chosen as the default handler for a file type.
 
 use std::ffi::c_void;
 use std::path::PathBuf;
@@ -122,7 +126,7 @@ pub fn register() {
         }
 
         // 2. Point each extension at the ProgId.
-        //    HKCU\Software\Classes\.md  →  (default) = "notepad.FileType"
+        //    HKCU\Software\Classes\.md  →  (default) = "notepads.FileType"
         for ext in EXTS {
             let key = format!("Software\\Classes\\.{ext}");
             if let Some(hk) = open_key(&key) {
@@ -188,6 +192,6 @@ pub fn is_registered() -> bool {
         if read_rc != ERROR_SUCCESS { return false; }
         let nchars = (len / 2).saturating_sub(1) as usize;
         let got = String::from_utf16_lossy(&buf[..nchars.min(buf.len())]);
-        got == "notepad.FileType"
+        got == "notepads.FileType"
     }
 }

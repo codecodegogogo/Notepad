@@ -1,4 +1,4 @@
-# notepad — Markdown Viewer/Editor
+# notepads — Markdown Viewer/Editor
 
 ## What is this?
 A lightweight native Windows markdown viewer/editor built with Rust + WebView2.
@@ -15,7 +15,7 @@ Goal: Notepad-fast startup, Obsidian-pretty UI. Single ~800 KB executable.
 ```bash
 cargo build --release
 ```
-Binary output: `target/release/notepad.exe`
+Binary output: `target/release/notepads.exe`
 
 `build.rs` uses `winresource` to embed `assets/notebook.ico` into the .exe.
 
