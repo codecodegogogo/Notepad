@@ -578,6 +578,7 @@ function closeFind() {
   findState.matches = [];
   findState.current = -1;
   clearPreviewHighlights();
+  renderEditorHighlights();
   document.getElementById('find-count').textContent = '';
   if (currentMode === 'edit') document.getElementById('editor').focus();
 }
@@ -588,6 +589,7 @@ function doFind(term) {
   clearPreviewHighlights();
   if (!term) {
     ($.findCount || document.getElementById('find-count')).textContent = '';
+    renderEditorHighlights();
     return;
   }
   if (currentMode === 'edit') {
@@ -624,6 +626,10 @@ function doFind(term) {
   if (findState.matches.length > 0) {
     findState.current = 0;
     goToMatch(0);
+  } else {
+    // No hits (or the term was cleared) — goToMatch never runs, so the layer has
+    // to be emptied here or the previous term's highlights would linger.
+    renderEditorHighlights();
   }
   updateFindCount();
 }
@@ -693,6 +699,57 @@ function revealInEditor(editor, offset) {
   editor.scrollTop = Math.max(0, y - editor.clientHeight / 2);
 }
 
+// Find-match highlighting for the editor.
+//
+// A textarea cannot host markup, and Chromium does not paint the selection of a
+// textarea that is not focused — which is every moment the find box has the
+// caret. So the matches are drawn on a layer underneath, holding the same text
+// in the same metrics with <mark> around each hit; the textarea above it is
+// transparent, so only those backgrounds show through under the real glyphs.
+function escapeHtml(s) {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function renderEditorHighlights() {
+  var layer = document.getElementById('editor-highlights');
+  if (!layer) return;
+  var editor = $.editor || document.getElementById('editor');
+  if (currentMode !== 'edit' || !findState.open || !findState.matches.length) {
+    layer.textContent = '';
+    return;
+  }
+  var value = editor.value;
+  var html = '';
+  var pos = 0;
+  findState.matches.forEach(function(m, i) {
+    html += escapeHtml(value.substring(pos, m.start));
+    html += '<mark' + (i === findState.current ? ' class="editor-match-active"' : '') + '>'
+          + escapeHtml(value.substring(m.start, m.end))
+          + '</mark>';
+    pos = m.end;
+  });
+  // Trailing newline: without a character after it the last line collapses and
+  // every wrapped line below the final match would sit one row too high.
+  html += escapeHtml(value.substring(pos)) + '\n';
+  layer.innerHTML = html;
+  // clientWidth excludes the scrollbar gutter; the layer is inset:0 and would
+  // otherwise be that much wider and wrap a few characters later than the text
+  // above it, drifting the highlights sideways on long lines.
+  layer.style.width = editor.clientWidth + 'px';
+  layer.scrollTop = editor.scrollTop;
+  layer.scrollLeft = editor.scrollLeft;
+}
+
+function syncHighlightScroll() {
+  var layer = document.getElementById('editor-highlights');
+  if (!layer || !layer.firstChild) return;
+  var editor = $.editor || document.getElementById('editor');
+  layer.scrollTop = editor.scrollTop;
+  layer.scrollLeft = editor.scrollLeft;
+}
+
+document.getElementById('editor').addEventListener('scroll', syncHighlightScroll);
+
 function goToMatch(idx) {
   findState.current = idx;
   if (currentMode === 'edit') {
@@ -704,6 +761,7 @@ function goToMatch(idx) {
     editor.selectionStart = match.start;
     editor.selectionEnd = match.end;
     revealInEditor(editor, match.start);
+    renderEditorHighlights();
     updateCursorStatus();
   } else {
     findState.marks.forEach(function(m) { m.classList.remove('find-active'); });

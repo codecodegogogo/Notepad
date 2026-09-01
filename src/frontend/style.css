@@ -397,20 +397,57 @@ body[data-toolbar-display="both"] .btn-label { display: inline; }
 
 #editor-container.active { display: block; flex: 1; min-width: 0; }
 
-#editor {
-  width: 100%;
-  height: 100%;
-  background: var(--bg-base);
-  color: var(--text);
-  border: none;
+/* The textarea and the highlight layer under it must lay text out identically,
+   so every metric that affects wrapping is declared once, for both. */
+#editor, #editor-highlights {
   padding: 28px 32px;
   font-family: var(--font-mono);
   font-size: calc(var(--font-size-editor) * var(--zoom));
   line-height: 1.8;
+  tab-size: 4;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  word-break: normal;
+  letter-spacing: normal;
+}
+
+#editor {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  height: 100%;
+  /* Transparent so the highlight layer shows through; the container carries the
+     page colour now. */
+  background: transparent;
+  color: var(--text);
+  border: none;
   resize: none;
   outline: none;
-  tab-size: 4;
   caret-color: var(--accent);
+}
+
+/* Backdrop for the find highlights. Same box as the textarea, scrolled in step
+   with it from JS. Its text is invisible — only the <mark> backgrounds show,
+   with the real glyphs painted by the textarea on top. */
+#editor-highlights {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  overflow: hidden;
+  color: transparent;
+  pointer-events: none;
+  user-select: none;
+}
+
+#editor-highlights mark {
+  background: var(--find-match);
+  color: transparent;
+  border-radius: 2px;
+}
+
+#editor-highlights mark.editor-match-active {
+  background: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-glow);
 }
 
 #editor::placeholder {

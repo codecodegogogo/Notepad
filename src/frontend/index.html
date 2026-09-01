@@ -95,6 +95,11 @@
     </div>
     <div id="editor-container" class="active">
       <div id="recent-panel"></div>
+      <!-- Painted behind the textarea, in the same font metrics, so find matches
+           stay visible while the find box holds focus. Chromium does not render a
+           non-focused textarea's selection at all, so the native one is only good
+           for the moment the editor itself is focused. -->
+      <div id="editor-highlights" aria-hidden="true"></div>
       <textarea id="editor" placeholder="开始输入 Markdown…" spellcheck="false"></textarea>
     </div>
 

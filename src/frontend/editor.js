@@ -18,6 +18,12 @@
     if (typeof splitMode !== 'undefined' && splitMode) {
       updateSplitPreview();
     }
+    // Editing shifts every match offset, so the highlight layer under the
+    // textarea would point at stale positions. Re-running the search rebuilds
+    // both the offsets and the layer.
+    if (typeof findState !== 'undefined' && findState.open && typeof doFind === 'function') {
+      doFind(document.getElementById('find-input').value);
+    }
   });
 
   // The caret can move without any text change — arrow keys, a click, a drag
